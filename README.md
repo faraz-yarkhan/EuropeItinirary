@@ -20,7 +20,10 @@ Plus pace, hotel budget, passport (Australian / other) and home airport (Sydney 
 - **Maps**: a built-in route map that zooms to your trip (works offline and in print), a street map of every stop by day, and Google Maps links
 - **Before you go**: visas, flights from Sydney, Australian reciprocal health care, face-covering laws, insurance, apps, money, tips and a saved checklist
 - **Phrases & halal cards** in the 28 languages on your route
-- **Print** (one page per day, auto-fitted to A4), **Save offline copy** (script-free HTML that opens in any phone preview) and **Copy as text**
+- **Download PDF**: a real A4 PDF (overview, route map, one page per day, key info, checklist, phrases), made in the browser — on phones it opens a dialog to save it (iPhone: Save to Files or Books; Android: Files, Drive or Downloads). Needs internet the first time to load the PDF tools
+- **Save to phone**: a script-free HTML copy of the whole plan that opens offline in any phone's file viewer, saved through the iPhone/Android share sheet or as a download
+- **Print** (auto-fitted to A4) and **Copy as text**
+- **Top picks** on every city card adds the highest-rated places you haven't chosen yet
 
 ## Files
 - `index.html` — page and styles
@@ -32,5 +35,5 @@ Plus pace, hotel budget, passport (Australian / other) and home airport (Sydney 
 
 Prices, opening hours and entry rules are typical for 2025–26 and change often: confirm on official sites before booking.
 
-## Using it on iPhone / iPad
-File previews (Files, Mail, WhatsApp) don't run JavaScript, so open the planner in Safari from a web address — e.g. host this repo with GitHub Pages (Settings → Pages → deploy from a branch) and open https://faraz-yarkhan.github.io/EuropeItinirary/. Use **Save offline copy** to carry your itinerary without internet.
+## Using it on iPhone and Android
+File previews (Files, Mail, WhatsApp) don't run JavaScript, so open the planner in Safari or Chrome from a web address — e.g. host this repo with GitHub Pages (Settings → Pages → deploy from a branch) and open https://faraz-yarkhan.github.io/EuropeItinirary/. Then use **Download PDF** or **Save to phone** to keep your itinerary for offline use. In-app browsers (WhatsApp, Instagram, Gmail) often block downloads: open the page in Safari or Chrome first.

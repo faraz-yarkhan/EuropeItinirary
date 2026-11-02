@@ -1059,6 +1059,8 @@ body.pv-screen > *:not(#printView):not(#pvBar):not(.toast) { display: none !impo
 body.pv-screen #printView { display: block; position: static; visibility: visible; width: auto; }
 body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12px rgba(0,0,0,.18); box-sizing: content-box; }
 /* Off-screen copy used to measure page heights at A4 width */
+#pdfStage { position: absolute; left: -10000px; top: 0; width: 210mm; background: #fff; --sea: #D9E6EF; --land: #F7F6F2; --coast: #98A6B3; --mapborder: #B4BEC8; --ink: #111; --muted: #555; --card: #fff; --seal: #A3241E; --sky: #24527D; --gold: #7A560C; --jade: #1D6B4F; --line: #ccc; --paper: #fff; color: #111; }
+#pdfStage .pv-page { padding: 10mm; box-sizing: content-box; width: 190mm; }
 #printView.measuring { display: block; position: absolute; left: -10000px; top: 0; width: 190mm; visibility: hidden; }
 .pv-page { width: 190mm; color: #111; background: #fff; font-family: var(--body); line-height: 1.35; }
 .pv-page h1 { font-family: var(--display); font-size: 1.9em; line-height: 1.1; margin: 0.2em 0 0.3em; }
@@ -1196,7 +1198,9 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
     </div>
     <button type="submit" class="btn primary" id="go">Build my itinerary</button>
     <button type="button" class="btn print-btn" data-print>🖨 Print itinerary & info</button>
-    <button type="button" class="btn" data-save>⬇ Save offline copy (works on iPhone)</button>
+    <button type="button" class="btn" data-pdf>📄 Download PDF</button>
+    <button type="button" class="btn" data-save>📲 Save to phone (iPhone & Android)</button>
+    <p class="hint">The PDF opens on any phone or computer. "Save to phone" keeps a full offline copy of the plan (with the street details and maps) that opens without internet.</p>
   </form>
 
   <section class="out" id="out" aria-live="polite"></section>

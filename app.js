@@ -498,7 +498,7 @@
           <button type="button" class="icon-btn" data-act="remove" data-i="${i}" aria-label="Remove ${esc(c.name)}">✕</button></div>
         ${legRow(st, i)}
         <div class="row"><select id="place-${i}" data-act="place" data-i="${i}" aria-label="Add a place in ${esc(c.name)}"><option value="">Add a place to see…</option>${opts}</select></div>
-        ${chips ? `<div class="chips">${chips}</div>` : `<p class="hint suggest">No places chosen, so we'll plan the top-rated ones for your trip style, e.g. ${topPicks(st.city, 3).map((p) => esc(p.n.split(/[:(&]/)[0].trim())).join(", ")}. <button type="button" class="btn small" data-act="addtop" data-i="${i}">Add top picks</button></p>`}
+        ${chips ? `<div class="chips">${chips}<button type="button" class="btn small" data-act="addtop" data-i="${i}" title="Add the top-rated places you haven't picked yet">★ Add top picks</button></div>` : `<p class="hint suggest">No places chosen, so we'll plan the top-rated ones for your trip style, e.g. ${topPicks(st.city, 3).map((p) => esc(p.n.split(/[:(&]/)[0].trim())).join(", ")}. <button type="button" class="btn small" data-act="addtop" data-i="${i}">Add top picks</button></p>`}
       </div>`;
     }).join("");
     renderNights();
@@ -606,7 +606,13 @@
       if (act === "quick") { addCity(b.dataset.city); return; }
       if (act === "up" && i > 0) [state.stops[i - 1], state.stops[i]] = [state.stops[i], state.stops[i - 1]];
       else if (act === "down" && i < state.stops.length - 1) [state.stops[i + 1], state.stops[i]] = [state.stops[i], state.stops[i + 1]];
-      else if (act === "addtop") { const st = state.stops[i]; st.places = topPicks(st.city, Math.min(2 + st.nights, 5)).filter((p) => !p.s.includes("full") || st.nights > 1).map((p) => p.id); }
+      else if (act === "addtop") {
+        const st = state.stops[i];
+        const add = topPicks(st.city, Math.min(2 + st.nights, 5)).filter((p) => (!p.s.includes("full") || st.nights > 1) && !st.places.includes(p.id)).map((p) => p.id);
+        if (!add.length) { toast(`All the top picks for ${CITIES[st.city].name} are already on your list.`); return; }
+        st.places = st.places.concat(add);
+        toast(`Added ${add.length} top pick${add.length > 1 ? "s" : ""} in ${CITIES[st.city].name}.`);
+      }
       else if (act === "remove") state.stops.splice(i, 1);
       else if (act === "unplace") state.stops[i].places = state.stops[i].places.filter((x) => x !== b.dataset.id);
       else if (act === "nplus") state.stops[i].nights = Math.min(30, state.stops[i].nights + 1);
@@ -890,7 +896,7 @@
       }
       if (s.type === "depart") {
         if (s.off != null) {
-          if (s.leaveBy != null) push({ k: "hotel", title: "Collect your bags and leave for the airport", start: s.leaveBy, end: s.leaveBy + s.airportMin, note: s.collect ? "Back to the hotel first: " + String(s.collect).replace(/<[^>]+>/g, "") : "" });
+          if (s.leaveBy != null) push({ k: "hotel", title: "Collect your bags and leave for the airport", start: s.leaveBy, end: s.leaveBy + s.airportMin, note: s.collect ? "Back to the hotel first: " + plain(s.collect) : "" });
           push({ k: "flight", title: "At the airport: check in, security and immigration", start: s.off - INTL_BUFFER, end: s.off - 30 });
           push({ k: "flight", title: `${s.flightNo ? s.flightNo + " takes" : "Take"} off — ${CITIES[s.flyOut].name} → home`, start: s.off, end: s.off });
         } else {
@@ -899,7 +905,7 @@
         }
       }
     });
-    if (day.back && t != null && !items.some((x) => x.k === "flight" && /off/.test(x.title))) push({ k: "hotel", title: "Back to the hotel", start: r5(t + 5), end: r5(t + 5 + (day.back.mins || 20)), note: String(day.back.text).replace(/<[^>]+>/g, "") });
+    if (day.back && t != null && !items.some((x) => x.k === "flight" && /off/.test(x.title))) push({ k: "hotel", title: "Back to the hotel", start: r5(t + 5), end: r5(t + 5 + (day.back.mins || 20)), note: plain(day.back.text) });
     // Breakfast before the first planned item (not on arrival day)
     if (day.kind !== "arrival" && items.length) {
       const first = Math.min.apply(null, items.map((x) => x.start));
@@ -1206,7 +1212,7 @@
         <div class="fact"><b>${state.pace === "relaxed" ? "Relaxed" : "Balanced"}</b><span>Pace</span></div>
       </div>
       <div class="notes">${notes.map(([k, t, h]) => `<div class="note ${k}"><b class="tag">${t}</b><span>${h}</span></div>`).join("")}</div>
-      <div class="actions"><button type="button" class="btn print-btn" data-print>🖨 Print itinerary & info (${plan.days.length + 5} pages)</button><button type="button" class="btn" data-save>⬇ Save offline copy</button><button type="button" class="btn" id="copyPlan">Copy itinerary as text</button></div>
+      <div class="actions"><button type="button" class="btn print-btn" data-print>🖨 Print itinerary & info (${plan.days.length + 5} pages)</button><button type="button" class="btn" data-pdf>📄 Download PDF</button><button type="button" class="btn" data-save>📲 Save to phone (offline copy)</button><button type="button" class="btn" id="copyPlan">Copy itinerary as text</button></div>
     </div>`;
 
     const tabs = `<div class="tabs" role="tablist">
@@ -1944,7 +1950,7 @@
   /* ---------- print view: overview, 1 page per day, info, checklist, phrases ---------- */
   // First sentence of a text (avoids regex lookbehind, which Safari only supports from iOS 16.4)
   const firstSentence = (t) => { const str = String(t), i = str.search(/\.\s/); return i < 0 ? str : str.slice(0, i + 1); };
-  const plain = (h) => String(h).replace(/<[^>]+>/g, "");
+  const plain = (h) => String(h).replace(/<[^>]+>/g, "").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 
   function pvSlot(s, day) {
     const when = SLOT[s.part];
@@ -2100,11 +2106,12 @@
         <li><b>Android (Chrome):</b> ⋮ menu → Share → <b>Print</b>.</li>
         <li><b>Inside another app:</b> open the page in Safari or Chrome first (⋯ → Open in browser).</li></ul>
         Tap <b>Show print layout</b> first so the browser prints the compact version.`,
+      nopdf: `<b>The PDF couldn't be made</b> — it needs an internet connection the first time (to load the PDF tools). Instead, use <b>Print</b> and choose <b>Save as PDF</b> (computer, Android), or on iPhone tap <b>Show print layout</b>, then Share → Print → pinch outwards on the preview → Share → Save to Files.`,
     }[reason];
     let el = $("#printHelp");
     if (!el) { el = document.createElement("div"); el.id = "printHelp"; el.className = "printhelp"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "Printing help"); document.body.appendChild(el); }
     el.innerHTML = `<div class="printhelp-card"><div>${msg}</div>
-      <div class="actions"><button type="button" class="btn print-btn" data-pvscreen>Show print layout</button>${window.NO_PRINT ? "" : '<button type="button" class="btn" data-save>⬇ Save offline copy</button>'}<button type="button" class="btn" data-closehelp>Close</button></div></div>`;
+      <div class="actions"><button type="button" class="btn print-btn" data-pvscreen>Show print layout</button>${window.NO_PRINT || reason === "nopdf" ? "" : '<button type="button" class="btn" data-pdf>📄 Download PDF</button><button type="button" class="btn" data-save>📲 Save to phone</button>'}<button type="button" class="btn" data-closehelp>Close</button></div></div>`;
     el.hidden = false;
     const first = el.querySelector("[data-pvscreen]");
     if (first) first.focus();
@@ -2128,6 +2135,105 @@
     window.scrollTo(0, 0);
   }
 
+  /* ---------- getting files onto phones and computers ---------- */
+  const UA = navigator.userAgent || "";
+  const isIOS = () => /iPhone|iPad|iPod/i.test(UA) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isAndroid = () => /Android/i.test(UA);
+  const isPhone = () => isIOS() || isAndroid() || !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+  const inAppBrowser = () => /FBAN|FBAV|Instagram|WhatsApp|Line\/|Snapchat|; wv\)|GSA\//i.test(UA);
+  function fileFrom(blob, name) { try { return new File([blob], name, { type: blob.type }); } catch (e) { return null; } }
+  function canShareFile(file) { try { return !!(file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })); } catch (e) { return false; } }
+  function downloadBlob(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = name; a.rel = "noopener";
+    if (typeof a.download === "undefined") window.open(url, "_blank"); // very old Safari
+    else { document.body.appendChild(a); a.click(); a.parentNode.removeChild(a); }
+    setTimeout(() => URL.revokeObjectURL(url), 120000);
+  }
+  // Phones: a dialog whose buttons are fresh taps (share sheets need one). Computers: download straight away.
+  function offerFile(blob, name, what) {
+    const file = fileFrom(blob, name);
+    if (!isPhone()) { downloadBlob(blob, name); toast(`${what} downloaded — check your Downloads folder.`); return; }
+    const share = canShareFile(file);
+    const howto = isIOS()
+      ? `<b>iPhone / iPad:</b> tap <b>Save to phone</b>, then <b>Save to Files</b> (choose <i>On My iPhone</i> so it works offline)${/pdf/.test(blob.type) ? ", or <b>Books</b>" : ""}. Open it later from the <b>Files</b> app. ${share ? "" : "If nothing appears, tap <b>Download</b>, then the ⬇ arrow in Safari's address bar."}`
+      : `<b>Android:</b> tap <b>Save to phone</b> and choose <b>Files</b>, <b>Drive</b> or another app — or tap <b>Download</b> and it goes to your <b>Downloads</b> folder (open the <b>Files</b> app → Downloads).`;
+    let el = $("#fileHelp");
+    if (!el) { el = document.createElement("div"); el.id = "fileHelp"; el.className = "printhelp"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "Save your file"); document.body.appendChild(el); }
+    el.innerHTML = `<div class="printhelp-card"><div><b>${esc(what)} is ready</b> <span class="hint">(${esc(name)}, ${Math.max(1, Math.round(blob.size / 1024))} KB)</span></div>
+      <div class="hint">${howto}${inAppBrowser() ? "<br><b>Inside WhatsApp, Instagram or Gmail?</b> Saving often doesn't work there — open this page in Safari or Chrome first (⋯ → Open in browser)." : ""}</div>
+      <div class="actions">${share ? '<button type="button" class="btn print-btn" data-fshare>📲 Save to phone</button>' : ""}<button type="button" class="btn${share ? "" : " print-btn"}" data-fdown>⬇ Download</button><button type="button" class="btn" data-fopen>Open</button><button type="button" class="btn" data-fclose>Close</button></div></div>`;
+    el.hidden = false;
+    el.onclick = (e) => {
+      if (e.target.closest("[data-fshare]")) navigator.share({ files: [file], title: name }).then(() => { el.hidden = true; toast("Saved."); }, (err) => { if (!err || err.name !== "AbortError") { downloadBlob(blob, name); toast("Sharing isn't available here, so it was downloaded instead."); } });
+      else if (e.target.closest("[data-fdown]")) { downloadBlob(blob, name); toast(isIOS() ? "Downloading — tap ⬇ in Safari's address bar, then the file → Share → Save to Files." : "Downloading to your Downloads folder."); }
+      else if (e.target.closest("[data-fopen]")) window.open(URL.createObjectURL(blob), "_blank");
+      else if (e.target.closest("[data-fclose]")) el.hidden = true;
+    };
+  }
+
+  /* PDF: the print layout's A4 pages, rendered in the browser (html2canvas + jsPDF from cdnjs, loaded on first use) */
+  function loadScript(src) {
+    return new Promise((ok, fail) => {
+      if (document.querySelector(`script[data-src="${src}"]`)) { const w = () => (loadScript.done[src] ? ok() : setTimeout(w, 100)); return w(); }
+      const sc = document.createElement("script"); sc.src = src; sc.setAttribute("data-src", src);
+      sc.onload = () => { loadScript.done[src] = true; ok(); }; sc.onerror = fail; document.head.appendChild(sc);
+    });
+  }
+  loadScript.done = {};
+  // SVG (the route map) loses stylesheet colours when rasterised, so copy computed styles onto each shape
+  const SVG_PROPS = ["fill", "fill-opacity", "stroke", "stroke-width", "stroke-dasharray", "stroke-linecap", "stroke-opacity", "opacity", "font-size", "font-family", "font-weight", "font-style", "letter-spacing", "text-anchor", "paint-order", "display"];
+  function inlineSvgStyles(root) {
+    root.querySelectorAll("svg, svg *").forEach((n) => {
+      const cs = getComputedStyle(n);
+      n.setAttribute("style", SVG_PROPS.map((p) => p + ":" + cs.getPropertyValue(p)).join(";") + ";" + (n.getAttribute("style") || ""));
+      if (n.classList && (n.classList.contains("map-land") || n.classList.contains("map-border"))) n.setAttribute("vector-effect", "non-scaling-stroke");
+    });
+  }
+  let pdfBusy = false;
+  function downloadPDF() {
+    if (!lastPlan || pdfBusy) return;
+    if (editingDay != null) { const d = editingDay; editingDay = null; refreshDay(d); }
+    pdfBusy = true;
+    toast("Preparing your PDF… (a few seconds)");
+    const done = () => { pdfBusy = false; const st = $("#pdfStage"); if (st) st.parentNode.removeChild(st); };
+    Promise.all([loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"), loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js")])
+      .then(() => {
+        fitPrintPages();
+        const stage = document.createElement("div");
+        stage.id = "pdfStage";
+        document.body.appendChild(stage);
+        const pages = Array.prototype.slice.call(document.querySelectorAll("#printView .pv-page"));
+        const doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+        let i = 0;
+        const next = () => {
+          if (i >= pages.length) return Promise.resolve();
+          const pg = pages[i].cloneNode(true);
+          stage.innerHTML = "";
+          stage.appendChild(pg);
+          inlineSvgStyles(stage);
+          return window.html2canvas(pg, { scale: 1.6, backgroundColor: "#ffffff", useCORS: true, logging: false }).then((cv) => {
+            if (i > 0) doc.addPage();
+            const h = Math.min(297, (cv.height / cv.width) * 210);
+            doc.addImage(cv.toDataURL("image/jpeg", 0.8), "JPEG", 0, 0, 210, h, undefined, "FAST");
+            i++;
+            if (i % 4 === 0) toast(`Preparing your PDF… page ${i} of ${pages.length}`);
+            return next();
+          });
+        };
+        return next().then(() => {
+          const names = state.stops.map((x) => CITIES[x.city].name.replace(/ \(.*\)/, "")).filter((v, k, a) => a.indexOf(v) === k).slice(0, 4).join(", ");
+          doc.setProperties({ title: `Europe trip · ${state.days} days · ${names}`, creator: "Europe Trip Planner" });
+          const blob = doc.output("blob");
+          window.__lastPdf = blob; // for testing
+          done();
+          offerFile(blob, `Europe trip itinerary (${state.days} days).pdf`, "Your PDF");
+        });
+      })
+      .catch(() => { done(); showPrintHelp("nopdf"); });
+  }
+
   /* Save the current plan as a script-free HTML file: it opens in any iPhone preview
      (Files, Mail, WhatsApp) and works offline, including where claude.ai is blocked. */
   function saveOffline() {
@@ -2136,7 +2242,7 @@
     if (editingDay != null) { const d = editingDay; editingDay = null; refreshDay(d); }
     const out = $("#out").cloneNode(true);
     out.querySelectorAll("[data-tledit]").forEach((n) => n.parentNode.removeChild(n));
-    out.querySelectorAll(".tabs, .actions, script, .maplinks, .lmap-wrap, .map-legend .btn").forEach((n) => n.parentNode.removeChild(n));
+    out.querySelectorAll(".tabs, .actions, script, .maplinks, .lmap-wrap, .map-legend .btn, [data-copycard]").forEach((n) => n.parentNode.removeChild(n));
     out.querySelectorAll("[hidden]").forEach((n) => n.removeAttribute("hidden"));
     out.querySelectorAll("input[type=checkbox]").forEach((n) => { if (n.checked) n.setAttribute("checked", ""); n.setAttribute("disabled", ""); });
     out.removeAttribute("id");
@@ -2157,14 +2263,7 @@ ${pv}
 </body></html>`;
     const name = `Europe trip itinerary (${state.days} days).html`;
     try {
-      const blob = new Blob([doc], { type: "text/html" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = name; a.rel = "noopener";
-      if (typeof a.download === "undefined") window.open(url, "_blank"); // very old Safari
-      else { document.body.appendChild(a); a.click(); a.parentNode.removeChild(a); }
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-      toast("Saved. On iPhone, tap the download arrow in Safari, then the file, and Share → Save to Files.");
+      offerFile(new Blob([doc], { type: "text/html" }), name, "Your offline copy");
     } catch (e) {
       toast("Couldn't save the file in this browser. Try Copy itinerary as text instead.");
     }
@@ -2173,7 +2272,7 @@ ${pv}
   /* ---------- export & misc ---------- */
   function planText() {
     if (!lastPlan) return "";
-    const strip = (h) => String(h).replace(/<[^>]+>/g, "");
+    const strip = plain;
     const L = [];
     L.push(`EUROPE TRIP — ${state.days} days`);
     L.push(state.stops.map((s) => `${CITIES[s.city].name} (${s.nights}N)`).join(" → "));
@@ -2268,6 +2367,7 @@ ${pv}
   document.addEventListener("click", (e) => {
     if (e.target.closest("[data-print]")) doPrint();
     if (e.target.closest("[data-save]")) saveOffline();
+    if (e.target.closest("[data-pdf]")) { if (window.NO_PRINT) toast("Downloads are blocked inside this preview — open the web version to get the PDF."); else downloadPDF(); }
     if (e.target.closest("[data-closehelp]")) { const h = $("#printHelp"); if (h) h.hidden = true; }
     if (e.target.closest("[data-pvscreen]")) { const h = $("#printHelp"); if (h) h.hidden = true; showPrintLayout(true); }
     if (e.target.closest("[data-pvexit]")) showPrintLayout(false);
