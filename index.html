@@ -887,6 +887,8 @@ body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 
 .photo { background: var(--sky-soft); border-radius: 6px; padding: 8px 10px; font-size: 13.5px; display: grid; gap: 3px; }
 .photo > b { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sky); }
 .photo .dist { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.areas { display: grid; gap: 10px; }
+.area { display: grid; gap: 5px; }
 .quick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .quick .hint { flex-basis: 100%; }
 .nlist { display: grid; gap: 6px; }
@@ -1114,7 +1116,7 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
 </div>
 <header class="mast">
   <div>
-    <h1>Europe Trip Planner <span class="loc">16 countries · 32 cities</span></h1>
+    <h1>Europe Trip Planner <span class="loc" id="counts">36 countries · 56 cities</span></h1>
     <p>Pick your countries, then your cities and how many nights in each. You get an hour-by-hour plan with directions, halal food, cafés and Instagram-worthy photo spots at every stop, plus hotels, transport and everything to sort out before you fly.</p>
   </div>
   <div class="seal" aria-hidden="true">EU<br>✈</div>
@@ -1124,7 +1126,7 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
   <form class="rail" id="planner" novalidate>
     <div class="field">
       <span class="label"><span class="step">1</span> Countries you'll visit</span>
-      <div class="types" id="countries" role="group" aria-label="Countries"></div>
+      <div class="areas" id="countries" role="group" aria-label="Countries"></div>
       <p class="hint">Tap every country on your list — their cities appear in step 2.</p>
     </div>
     <div class="field">
@@ -1217,6 +1219,8 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
 <script src="cities-italy.js"></script>
 <script src="cities-iberia.js"></script>
 <script src="cities-southeast.js"></script>
+<script src="cities-north.js"></script>
+<script src="cities-east.js"></script>
 <script src="routes.js"></script>
 <script src="map-data.js"></script>
 <script src="app.js"></script>

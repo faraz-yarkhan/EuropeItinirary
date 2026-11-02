@@ -8,7 +8,8 @@
    r rating 1–3 (3 = unmissable).
    City extras: cafes [{n, ll, note}] — coffee, cake and dessert stops;
    insta [{n, ll, note, when}] — Instagram-worthy spots and the best time to shoot them;
-   nightsRec — the number of nights we recommend. */
+   nightsRec — the number of nights we recommend; rail — rail network group (null = no useful railway);
+   island — reached only by air or sea. */
 
 const TRIP_TYPES = [
   { id: "sightseeing", label: "Sightseeing" },
@@ -23,25 +24,71 @@ const TRIP_TYPES = [
   { id: "family", label: "Family-friendly" },
 ];
 
-/* region: which border zone the country belongs to (passport checks happen between zones).
-   lang: phrasebook language. ll: where to print the country's name on the route map. */
+/* Groups for the country picker */
+const AREAS = [
+  ["west", "Western Europe"], ["central", "Central Europe"], ["north", "Nordic & Baltic"],
+  ["south", "Southern Europe"], ["balkans", "Balkans & South-East"], ["east", "Eastern Europe"],
+];
+
+/* region: border zone (passport checks happen between zones). lang: phrasebook language.
+   ll: where to print the country's name on the route map. warn: shown prominently in the plan. */
 const COUNTRIES = {
-  gb: { name: "United Kingdom", flag: "🇬🇧", region: "uk", cur: "£ (GBP)", lang: "en", ll: [52.6, -1.6] },
-  fr: { name: "France", flag: "🇫🇷", region: "schengen", cur: "€ (EUR)", lang: "fr", ll: [46.6, 2.4] },
-  nl: { name: "Netherlands", flag: "🇳🇱", region: "schengen", cur: "€ (EUR)", lang: "nl", ll: [52.6, 5.6] },
-  be: { name: "Belgium", flag: "🇧🇪", region: "schengen", cur: "€ (EUR)", lang: "fr", ll: [50.5, 4.6] },
-  de: { name: "Germany", flag: "🇩🇪", region: "schengen", cur: "€ (EUR)", lang: "de", ll: [51.0, 10.2] },
-  ch: { name: "Switzerland", flag: "🇨🇭", region: "schengen", cur: "CHF", lang: "de", ll: [46.85, 8.2] },
-  at: { name: "Austria", flag: "🇦🇹", region: "schengen", cur: "€ (EUR)", lang: "de", ll: [47.4, 14.2] },
-  cz: { name: "Czechia", flag: "🇨🇿", region: "schengen", cur: "Kč (CZK)", lang: "cs", ll: [49.8, 15.4] },
-  hu: { name: "Hungary", flag: "🇭🇺", region: "schengen", cur: "Ft (HUF)", lang: "hu", ll: [47.1, 19.3] },
-  it: { name: "Italy", flag: "🇮🇹", region: "schengen", cur: "€ (EUR)", lang: "it", ll: [42.9, 12.6] },
-  es: { name: "Spain", flag: "🇪🇸", region: "schengen", cur: "€ (EUR)", lang: "es", ll: [39.9, -3.6] },
-  pt: { name: "Portugal", flag: "🇵🇹", region: "schengen", cur: "€ (EUR)", lang: "pt", ll: [39.6, -8.0] },
-  gr: { name: "Greece", flag: "🇬🇷", region: "schengen", cur: "€ (EUR)", lang: "el", ll: [39.6, 21.9] },
-  hr: { name: "Croatia", flag: "🇭🇷", region: "schengen", cur: "€ (EUR)", lang: "hr", ll: [45.3, 15.8] },
-  ba: { name: "Bosnia & Herzegovina", flag: "🇧🇦", region: "ba", cur: "KM (BAM)", lang: "hr", ll: [44.2, 17.8] },
-  tr: { name: "Türkiye", flag: "🇹🇷", region: "tr", cur: "₺ (TRY)", lang: "tr", ll: [40.4, 29.9] },
+  gb: { area: "west", name: "United Kingdom", flag: "🇬🇧", region: "uk", cur: "£ (GBP)", lang: "en", ll: [52.6, -1.6] },
+  ie: { area: "west", name: "Ireland", flag: "🇮🇪", region: "ie", cur: "€ (EUR)", lang: "en", ll: [53.1, -8.0] },
+  fr: { area: "west", name: "France", flag: "🇫🇷", region: "schengen", cur: "€ (EUR)", lang: "fr", ll: [46.6, 2.4] },
+  be: { area: "west", name: "Belgium", flag: "🇧🇪", region: "schengen", cur: "€ (EUR)", lang: "fr", ll: [50.5, 4.6] },
+  nl: { area: "west", name: "Netherlands", flag: "🇳🇱", region: "schengen", cur: "€ (EUR)", lang: "nl", ll: [52.6, 5.6] },
+  de: { area: "central", name: "Germany", flag: "🇩🇪", region: "schengen", cur: "€ (EUR)", lang: "de", ll: [51.0, 10.2] },
+  ch: { area: "central", name: "Switzerland", flag: "🇨🇭", region: "schengen", cur: "CHF", lang: "de", ll: [46.85, 8.2] },
+  at: { area: "central", name: "Austria", flag: "🇦🇹", region: "schengen", cur: "€ (EUR)", lang: "de", ll: [47.4, 14.2] },
+  cz: { area: "central", name: "Czechia", flag: "🇨🇿", region: "schengen", cur: "Kč (CZK)", lang: "cs", ll: [49.8, 15.4] },
+  sk: { area: "central", name: "Slovakia", flag: "🇸🇰", region: "schengen", cur: "€ (EUR)", lang: "sk", ll: [48.75, 19.6] },
+  pl: { area: "central", name: "Poland", flag: "🇵🇱", region: "schengen", cur: "zł (PLN)", lang: "pl", ll: [52.0, 19.2] },
+  hu: { area: "central", name: "Hungary", flag: "🇭🇺", region: "schengen", cur: "Ft (HUF)", lang: "hu", ll: [47.1, 19.3] },
+  si: { area: "central", name: "Slovenia", flag: "🇸🇮", region: "schengen", cur: "€ (EUR)", lang: "sl", ll: [46.15, 14.6] },
+  dk: { area: "north", name: "Denmark", flag: "🇩🇰", region: "schengen", cur: "kr (DKK)", lang: "da", ll: [56.1, 9.3] },
+  se: { area: "north", name: "Sweden", flag: "🇸🇪", region: "schengen", cur: "kr (SEK)", lang: "sv", ll: [62.0, 15.5] },
+  no: { area: "north", name: "Norway", flag: "🇳🇴", region: "schengen", cur: "kr (NOK)", lang: "no", ll: [61.5, 9.0] },
+  fi: { area: "north", name: "Finland", flag: "🇫🇮", region: "schengen", cur: "€ (EUR)", lang: "fi", ll: [63.0, 26.0] },
+  is: { area: "north", name: "Iceland", flag: "🇮🇸", region: "schengen", cur: "kr (ISK)", lang: "is", ll: [64.9, -18.6] },
+  ee: { area: "north", name: "Estonia", flag: "🇪🇪", region: "schengen", cur: "€ (EUR)", lang: "et", ll: [58.7, 25.6] },
+  lv: { area: "north", name: "Latvia", flag: "🇱🇻", region: "schengen", cur: "€ (EUR)", lang: "lv", ll: [56.9, 25.4] },
+  lt: { area: "north", name: "Lithuania", flag: "🇱🇹", region: "schengen", cur: "€ (EUR)", lang: "lt", ll: [55.3, 23.9] },
+  it: { area: "south", name: "Italy", flag: "🇮🇹", region: "schengen", cur: "€ (EUR)", lang: "it", ll: [42.9, 12.6] },
+  es: { area: "south", name: "Spain", flag: "🇪🇸", region: "schengen", cur: "€ (EUR)", lang: "es", ll: [39.9, -3.6] },
+  pt: { area: "south", name: "Portugal", flag: "🇵🇹", region: "schengen", cur: "€ (EUR)", lang: "pt", ll: [39.6, -8.0] },
+  gr: { area: "south", name: "Greece", flag: "🇬🇷", region: "schengen", cur: "€ (EUR)", lang: "el", ll: [39.6, 21.9] },
+  mt: { area: "south", name: "Malta", flag: "🇲🇹", region: "schengen", cur: "€ (EUR)", lang: "en", ll: [35.75, 14.4] },
+  hr: { area: "balkans", name: "Croatia", flag: "🇭🇷", region: "schengen", cur: "€ (EUR)", lang: "hr", ll: [45.3, 15.8] },
+  ba: { area: "balkans", name: "Bosnia & Herzegovina", flag: "🇧🇦", region: "ba", cur: "KM (BAM)", lang: "hr", ll: [44.2, 17.8] },
+  rs: { area: "balkans", name: "Serbia", flag: "🇷🇸", region: "rs", cur: "din (RSD)", lang: "sr", ll: [43.9, 20.9] },
+  me: { area: "balkans", name: "Montenegro", flag: "🇲🇪", region: "me", cur: "€ (EUR)", lang: "sr", ll: [42.8, 19.3] },
+  al: { area: "balkans", name: "Albania", flag: "🇦🇱", region: "al", cur: "L (ALL)", lang: "sq", ll: [40.9, 20.1] },
+  mk: { area: "balkans", name: "North Macedonia", flag: "🇲🇰", region: "mk", cur: "den (MKD)", lang: "mk", ll: [41.65, 21.7] },
+  ro: { area: "balkans", name: "Romania", flag: "🇷🇴", region: "schengen", cur: "lei (RON)", lang: "ro", ll: [46.0, 24.9] },
+  bg: { area: "balkans", name: "Bulgaria", flag: "🇧🇬", region: "schengen", cur: "€ (EUR, since 2026)", lang: "bg", ll: [42.75, 25.3] },
+  tr: { area: "balkans", name: "Türkiye", flag: "🇹🇷", region: "tr", cur: "₺ (TRY)", lang: "tr", ll: [40.4, 29.9] },
+  ru: { area: "east", name: "Russia", flag: "🇷🇺", region: "ru", cur: "₽ (RUB) — cash only for visitors", lang: "ru", ll: [57.2, 35.5],
+    warn: "The Australian Government's advice for Russia is <b>Do not travel</b> (Smartraveller): risk of arbitrary detention, the war with Ukraine, and very limited consular help. Most travel insurance is void, Australian Visa/Mastercard cards don't work there, and there are no flights from the EU." },
+};
+
+/* Border zones outside Schengen: what entry looks like for Australians and for other passports.
+   (Schengen, UK and Türkiye have fuller notes in app.js.) Checked November 2026. */
+const REGIONS = {
+  ie: { name: "Ireland", au: "Ireland: Australians don't need a visa for visits of up to 90 days. Ireland isn't in Schengen, so days there don't count towards your Schengen 90 — but if you continue to the UK (even by land into Northern Ireland) you still need a UK ETA.",
+    other: "Ireland isn't in Schengen: check whether your passport needs an Irish visa (irishimmigration.ie)." },
+  ba: { name: "Bosnia & Herzegovina", au: "Bosnia & Herzegovina: Australians are visa-free for up to 90 days. It's outside the EU and Schengen, so those days don't use up your Schengen 90.",
+    other: "Bosnia & Herzegovina is outside the EU and Schengen — check its visa rules for your passport (mvp.gov.ba)." },
+  rs: { name: "Serbia", au: "Serbia: Australians are visa-free for up to 90 days in any 180. Hotels register you with the police automatically; in a private apartment, check your host does it within 24 h. Days here don't count towards your Schengen 90.",
+    other: "Serbia is outside the EU and Schengen — check its visa rules for your passport (mfa.gov.rs)." },
+  me: { name: "Montenegro", au: "Montenegro: Australians are visa-free for up to 90 days. It uses the euro but isn't in the EU or Schengen, so days there don't count towards your Schengen 90. Pay the small tourist tax at your hotel (it registers you).",
+    other: "Montenegro is outside the EU and Schengen — check its visa rules for your passport." },
+  al: { name: "Albania", au: "Albania: Australians are visa-free for up to 90 days in any 180. Outside the EU and Schengen.",
+    other: "Albania is outside the EU and Schengen — many passports are visa-free, others need a visa (e-albania.al)." },
+  mk: { name: "North Macedonia", au: "North Macedonia: Australians are visa-free for up to 90 days in any 180. Outside the EU and Schengen.",
+    other: "North Macedonia is outside the EU and Schengen — check its visa rules for your passport." },
+  ru: { name: "Russia", au: "Russia: Smartraveller says <b>Do not travel</b>. Australians aren't eligible for Russia's e-visa, so you'd need a full tourist visa through a Russian consulate, with an invitation (voucher) from a hotel or agency. There are no flights from the EU (fly via Istanbul, Dubai or Belgrade), the Finnish land border is closed, and Western cards don't work — bring cash.",
+    other: "Russia: most Western governments advise against all travel. Check whether your passport can use Russia's e-visa (evisa.kdmid.ru); otherwise apply at a consulate. No flights from the EU; Western cards don't work." },
 };
 
 const CITIES = {};

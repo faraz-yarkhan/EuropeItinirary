@@ -75,7 +75,7 @@
     const c = String(city.cur).trim();
     const v = n >= 1000 ? Math.round(n / 100) * 100 : n >= 100 ? Math.round(n / 10) * 10 : Math.max(1, Math.round(n));
     const t = v.toLocaleString("en-US");
-    return /^(Kč|Ft|KM)$/.test(c) ? t + " " + c : city.cur + t;
+    return /^(Kč|Ft|KM|kr|zł|lei|din|den|L|₽)$/.test(c) ? t + " " + c : city.cur + t;
   }
 
   /* How to get from A to B inside a city */
@@ -445,7 +445,9 @@
   }
 
   function renderForm() {
-    $("#countries").innerHTML = Object.entries(COUNTRIES).map(([id, c]) => `<label class="toggle"><input type="checkbox" value="${id}" data-country="${id}" ${state.countries.includes(id) ? "checked" : ""}><span>${c.flag} ${esc(c.name)}</span></label>`).join("");
+    $("#countries").innerHTML = AREAS.map(([a, label]) => `<div class="area"><span class="hint">${esc(label)}</span><div class="types">${Object.entries(COUNTRIES).filter(([, c]) => c.area === a).map(([id, c]) => `<label class="toggle"><input type="checkbox" value="${id}" data-country="${id}" ${state.countries.includes(id) ? "checked" : ""}><span>${c.flag} ${esc(c.name)}</span></label>`).join("")}</div></div>`).join("");
+    const cnt = $("#counts");
+    if (cnt) cnt.textContent = `${Object.keys(COUNTRIES).length} countries · ${Object.keys(CITIES).length} cities`;
     $("#start").value = state.start || "";
     $("#types").innerHTML = TRIP_TYPES.map((t) => `<label class="toggle"><input type="checkbox" id="type-${t.id}" value="${t.id}" ${state.types.includes(t.id) ? "checked" : ""}><span>${esc(t.label)}</span></label>`).join("") +
       `<label class="toggle"><input type="checkbox" id="type-other" value="other" ${state.other ? "checked" : ""}><span>Other…</span></label>`;
@@ -679,9 +681,8 @@
     const t = {
       schengen: au ? "Entering the Schengen Area: your passport is registered in the EU Entry/Exit System (fingerprints and a photo on your first entry). Australians can stay 90 days in any 180 across all Schengen countries combined." : "Entering the Schengen Area: passport control and Entry/Exit System registration (fingerprints and a photo on first entry). Have your Schengen visa ready if you need one.",
       uk: au ? "Entering the UK: you need an approved UK ETA before you travel; Australians can use the eGates." : "Entering the UK: most visitors need a UK ETA or a visa, arranged before you travel.",
-      ba: au ? "Entering Bosnia & Herzegovina (outside the EU): passport check; Australians are visa-free for up to 90 days. Days here don't count towards your Schengen 90." : "Entering Bosnia & Herzegovina (outside the EU): passport check — check whether your passport needs a visa.",
       tr: au ? "Entering Türkiye: Australians have been visa-free for up to 90 days in 180 since April 2026 — confirm on Smartraveller. Days here don't count towards your Schengen 90." : "Entering Türkiye: check whether you need an e-Visa (apply only at evisa.gov.tr).",
-    }[to];
+    }[to] || (REGIONS[to] ? "Entering " + REGIONS[to].name + ": passport check. " + (au ? REGIONS[to].au : REGIONS[to].other) : "");
     return "Passport out. " + t + (ctry(b).cur !== ctry(a).cur ? ` Money changes to ${esc(ctry(b).cur)}.` : "");
   }
 
@@ -1131,6 +1132,7 @@
     if (reordered) notes.push(["info", "Route", `Cities re-ordered so you start in ${esc(CITIES[arrId].name)}, finish near ${esc(CITIES[depId].name)} and travel the shortest way between them. Untick “Recommend the best city order and transport” to keep your own order.`]);
     reordered = false;
     plan.warnings.forEach((w) => notes.push(["warn", "Check", esc(w)]));
+    routeCountries.filter((c) => COUNTRIES[c].warn).forEach((c) => notes.push(["warn", "Safety", `${COUNTRIES[c].flag} ${COUNTRIES[c].warn}`]));
     // Entry rules, zone by zone
     if (zones.schengen) {
       const sch = zones.schengen + 1;
@@ -1147,7 +1149,7 @@
     if (zones.tr) notes.push(["info", "Visa", isAU()
       ? "Türkiye: Australians have been <b>visa-free since 17 April 2026</b> (up to 90 days in 180). Many older guides still say you need an e-Visa — confirm on Smartraveller before you fly."
       : "Türkiye: many passports are visa-free; others need an e-Visa — apply only on the official site, evisa.gov.tr."]);
-    if (zones.ba) notes.push(["info", "Visa", isAU() ? "Bosnia & Herzegovina: Australians are visa-free for up to 90 days. It's outside the EU and Schengen, so those days don't use up your Schengen 90." : "Bosnia & Herzegovina is outside the EU and Schengen — check its visa rules for your passport."]);
+    Object.keys(REGIONS).forEach((r) => { if (zones[r]) notes.push([r === "ru" ? "warn" : "info", "Visa", isAU() ? REGIONS[r].au : REGIONS[r].other]); });
     if (fromSyd()) {
       const same = arrId === depId;
       notes.push(["info", "Flights", `Book ${same ? "a return" : "a <b>multi-city (open-jaw)</b>"} ticket: Sydney → ${esc(CITIES[arrId].name)}${same ? " and back" : `, then ${esc(CITIES[depId].name)} → Sydney`}. There are no nonstop flights to Europe until Qantas launches Sydney–London (announced for October 2027): expect one stop and 22–26 h. Emirates, Qatar Airways and Etihad serve halal meals on every flight. Details are on day 1 and the last day.`]);
@@ -1171,6 +1173,9 @@
       if (touches(11, 24, 26) || touches(0, 1, 1)) notes.push(["warn", "Holiday", "Your dates include Christmas or New Year's Day: most museums, shops and some transport close or run reduced hours on 24–26 December and 1 January. Late November to 23 December is Christmas-market season (Vienna, Munich, Prague, Strasbourg, Budapest…)."]);
       else if (touches(10, 20, 30) || touches(11, 1, 23)) notes.push(["good", "Season", "Christmas-market season: Vienna, Munich, Prague, Budapest, Zurich and Brussels light up. Look for non-alcoholic punch (Kinderpunsch) instead of mulled wine."]);
       if (anyM([10, 11, 0, 1, 2]) && routeIds.some((i) => ["int", "lzn", "zrh", "szg", "muc"].includes(i))) notes.push(["info", "Weather", "Alpine winter: some mountain railways and hikes close (e.g. Pilatus's cogwheel railway runs only May–November) — Jungfraujoch and Titlis stay open. Pack warm, waterproof layers."]);
+      const north = routeIds.some((i) => ["no", "se", "fi", "is", "dk", "ee", "lv", "lt", "ru"].includes(CITIES[i].country));
+      if (anyM([10, 11, 0, 1]) && north) notes.push(["info", "Season", "Northern winter: only about 6 h of daylight in Oslo, Stockholm and Helsinki in December (4–5 h in Reykjavík), and temperatures below 0 °C — but it's Northern Lights season (Iceland, northern Norway) and Christmas markets glow."]);
+      if (anyM([4, 5, 6]) && north) notes.push(["info", "Prayer", "Midsummer in the north: it barely gets dark (white nights), so Isha and Fajr times are hard to calculate. Use a high-latitude method in Muslim Pro, or follow the local mosque's timetable."]);
       if (anyM([10, 11, 0, 1, 2]) && routeIds.includes("jtr")) notes.push(["warn", "Season", "Santorini in winter: many hotels, restaurants and boat trips close from November to March, and ferries are fewer."]);
       if (inRange("2027-02-08", "2027-03-09") || inRange("2028-01-28", "2028-02-26")) notes.push(["info", "Ramadan", "Your trip overlaps Ramadan (expected around 8 Feb – 9 Mar 2027 / 28 Jan – 26 Feb 2028; it depends on the moon sighting). Winter fasts in Europe are short. Istanbul and Sarajevo are wonderful for iftar; elsewhere, mosques often hold community iftars."]);
       if (inRange("2027-05-15", "2027-05-18")) notes.push(["info", "Eid", "Eid al-Adha is expected around 16 May 2027 — plan Eid prayer at the nearest large mosque."]);
@@ -1287,7 +1292,7 @@
       "Book timed tickets for headline sights (Louvre, Vatican, Colosseum, Last Supper, Sagrada Família, Alhambra, Anne Frank House, Acropolis…) as soon as they open",
       "Travel insurance with medical evacuation; check it covers skiing, hiking or paragliding if you plan them",
       "Travel eSIM or a roaming pack — EU 'roam like at home' doesn't apply to Australian SIMs",
-      "Low-fee travel card (e.g. Wise, Revolut, ING, Macquarie, Up) plus a backup card; a little cash in € (and £, CHF, Kč, Ft, KM or ₺ if on your route)",
+      "Low-fee travel card (e.g. Wise, Revolut, ING, Macquarie, Up) plus a backup card; a little cash in € (and the local currency for non-euro countries on your route)",
       "Plug adapters: Type C/F for most of Europe, Type G for the UK; Type C also fits Swiss and Italian sockets",
       "Download offline Google Maps, Google Translate languages and the rail apps you'll use",
       "Comfortable walking shoes (cobblestones and hills) and a light scarf or layer for churches and mosques",
@@ -1300,13 +1305,13 @@
   function prepHTML(ids, zones) {
     const checklist = checklistItems();
     const au = isAU();
-    const banned = [["fr", "France"], ["be", "Belgium"], ["at", "Austria"], ["ch", "Switzerland (nationwide since 1 January 2025)"], ["nl", "the Netherlands (on public transport and in schools, hospitals and government buildings)"]].filter(([c]) => onRoute(c));
+    const banned = [["fr", "France"], ["be", "Belgium"], ["at", "Austria"], ["ch", "Switzerland (nationwide since 1 January 2025)"], ["nl", "the Netherlands (on public transport and in schools, hospitals and government buildings)"], ["dk", "Denmark"], ["bg", "Bulgaria"]].filter(([c]) => onRoute(c));
     return `
     <section class="panel">
       <h3>Visas & entry</h3>
       ${zones.schengen ? (au ? `<h4>Schengen Area — Australian passport</h4>
       <ul>
-        <li><b>No visa needed for up to 90 days in any 180-day period</b>, for tourism or visiting family. The 90 days are counted across <b>all 29 Schengen countries together</b> (in this planner: France, the Netherlands, Belgium, Germany, Switzerland, Austria, Czechia, Hungary, Italy, Spain, Portugal, Greece and Croatia).</li>
+        <li><b>No visa needed for up to 90 days in any 180-day period</b>, for tourism or visiting family. The 90 days are counted across <b>all 29 Schengen countries together</b> (in this planner: ${Object.keys(COUNTRIES).filter((c) => COUNTRIES[c].region === "schengen").map((c) => COUNTRIES[c].name).join(", ")}).</li>
         <li><b>Entry/Exit System (EES):</b> since 10 April 2026 your fingerprints and a photo are recorded the first time you enter, and every entry and exit is logged digitally instead of stamped. Allow extra time at your first border.</li>
         <li><b>ETIAS</b> (an online travel authorisation, about €20, valid 3 years) is <b>not yet required</b>. The EU dropped its late-2026 target; it's now expected in 2027, with a transition period. Check travel-europe.europa.eu before you fly — and use only that official site.</li>
         <li>Your passport must be valid for 3 months after you leave Schengen and issued within the last 10 years. Border officers may ask for your return ticket, accommodation and funds.</li>
@@ -1325,7 +1330,7 @@
         : `<h4>United Kingdom</h4><p>Visitors who don't need a visa — including EU, US and Canadian citizens — need a UK ETA (£20) before travelling. Others need a Standard Visitor visa (apply on GOV.UK).</p>`) : ""}
       ${zones.tr ? (au ? `<h4>Türkiye</h4><p><b>Visa-free for Australians since 17 April 2026</b> for tourism, up to 90 days in any 180 days. Many websites (and older consulate pages) still say an e-Visa is needed — check Smartraveller's Türkiye page before you fly. Passport valid 150 days beyond arrival.</p>`
         : `<h4>Türkiye</h4><p>Many nationalities are visa-free; others need an e-Visa, applied for only on the official site evisa.gov.tr (agent sites charge more).</p>`) : ""}
-      ${zones.ba ? `<h4>Bosnia & Herzegovina</h4><p>${au ? "Australians are visa-free for up to 90 days in 180." : "Check visa rules on the Bosnian Ministry of Foreign Affairs site (mvp.gov.ba)."} Outside the EU and Schengen; Dubrovnik ↔ Mostar day trips cross a full border — carry your passport.</p>` : ""}
+      ${Object.keys(REGIONS).filter((r) => zones[r]).map((r) => `<h4>${esc(REGIONS[r].name)}</h4><p>${au ? REGIONS[r].au : REGIONS[r].other}</p>`).join("")}
       ${banned.length ? `<div class="note warn"><b class="tag">Good to know</b><span><b>Face-covering laws:</b> wearing a face covering such as the niqab or burqa in public is banned in ${banned.map((b) => b[1]).join("; ")}, with fines. Headscarves (hijab) are not affected.</span></div>` : ""}
     </section>
 
@@ -1358,7 +1363,7 @@
           ["nice", "TheFork", "Restaurant bookings and discounts (France, Italy, Spain, Portugal)."],
           ["nice", "Skyscanner / Google Flights", "Find budget flights; book direct with the airline."],
           ["nice", "Wise / Revolut", "Low-fee multi-currency cards that work with Apple/Google Pay."],
-          ["nice", "XE Currency", "Quick conversions: €, £, CHF, Kč, Ft, KM, ₺."],
+          ["nice", "XE Currency", "Quick currency conversions for every country on your route."],
         ].map(([k, n, d]) => `<div class="app"><span class="tag ${k}">${k === "must" ? "Essential" : "Useful"}</span><b>${esc(n)}</b><span>${esc(d)}</span></div>`).join("")}
       </div>
     </section>
@@ -1369,7 +1374,8 @@
         <li><b>Contactless cards and phone wallets work almost everywhere</b>, including metro gates in London, Paris, Milan, Rome and Barcelona. Carry a little cash for markets, small cafés, toilets and tips — especially in Germany, Italy, Czechia and Hungary.</li>
         <li><b>Always pay in the local currency.</b> When a card machine or ATM offers to charge you in AUD ('dynamic currency conversion'), decline — the rate is much worse.</li>
         <li>Use bank ATMs; avoid Euronet and other stand-alone cash machines, which charge high fees.</li>
-        <li>Currencies: euro in most countries; pound (UK), Swiss franc, Czech koruna, Hungarian forint, Bosnian mark (euros often accepted) and Turkish lira (prices change fast — card is easiest).</li>
+        <li>Currencies: the euro in most countries (Bulgaria since 2026; Montenegro uses it outside the EU). Your route's other currencies: ${routeCurrencies()}.</li>
+        ${onRoute("ru") ? "<li><b>Russia:</b> Australian and other Western cards don't work, and you can't withdraw cash with them. Bring all the money you'll need as euro or US dollar cash and exchange it at banks.</li>" : ""}
         <li><b>Tax-free shopping:</b> non-EU residents can reclaim VAT on goods taken home — minimums per shop vary (none in Spain, roughly €50–100 in most countries, CHF 300 in Switzerland). Ask for a tax-free form and validate it at the last EU airport before check-in. The UK stopped tax-free shopping for tourists in 2021.</li>
         <li><b>Tipping</b> isn't compulsory: round up or leave 5–10% for good service. Italian bills include a 'coperto' cover charge; UK restaurants often add 12.5% service.</li>
       </ul>
@@ -1397,6 +1403,11 @@
       <p class="hint">Ticks are saved in this browser.</p>
       <ul class="checklist">${checklist.map((c, i) => `<li><input type="checkbox" id="chk-${i}" data-chk="${i}"><label for="chk-${i}"><span>${esc(c)}</span></label></li>`).join("")}</ul>
     </section>`;
+  }
+
+  function routeCurrencies() {
+    const out = state.stops.map((x) => ctry(x.city)).filter((c, i, a) => a.indexOf(c) === i && !/^€/.test(c.cur)).map((c) => `${c.name} ${c.cur}`);
+    return out.length ? esc(out.join("; ")) : "none — it's euros all the way";
   }
 
   function flightsPanel(ids, first, last) {
@@ -1469,6 +1480,57 @@
     tr: { name: "Turkish", where: "Türkiye (all meat is halal — these are for everything else)",
       card: "Müslümanım ve sadece helal yiyorum. Lütfen yemeğe domuz eti, alkol veya şarap koymayın. Teşekkür ederim!",
       rows: [["Hello", "Merhaba", "MER-ha-ba"], ["Peace be upon you", "Selamün aleyküm", "se-la-MOON a-LAY-koom"], ["Thank you", "Teşekkür ederim", "te-shek-KEWR e-de-rim"], ["Please", "Lütfen", "LEWT-fen"], ["Excuse me / sorry", "Affedersiniz", "af-fe-DER-si-niz"], ["Do you speak English?", "İngilizce biliyor musunuz?", "in-gi-LIZ-je bi-li-YOR mu-su-nuz"], ["How much is it?", "Ne kadar?", "neh ka-DAR"], ["The bill, please", "Hesap, lütfen", "he-SAP LEWT-fen"], ["Where is …?", "… nerede?", "NE-re-de"], ["Where is the mosque?", "Cami nerede?", "JAH-mee NE-re-de"], ["Tea / water", "Çay / su", "chai / soo"], ["Delicious!", "Çok lezzetli!", "chok lez-ZET-lee"], ["Too expensive", "Çok pahalı", "chok pa-ha-LUH"], ["Help!", "Yardım edin!", "yar-DUM e-din"]] },
+    pl: { name: "Polish", where: "Poland",
+      card: "Jestem muzułmaninem/muzułmanką i jem tylko jedzenie halal. Proszę: bez wieprzowiny, szynki, boczku, smalcu i żelatyny, i bez alkoholu ani wina w jedzeniu. Czy to danie jest dla mnie odpowiednie? Dziękuję!",
+      rows: [["Hello / good day", "Dzień dobry", "jen DOB-ri"], ["Thank you", "Dziękuję", "jen-KOO-yeh"], ["Please", "Proszę", "PRO-sheh"], ["Excuse me / sorry", "Przepraszam", "pshe-PRA-sham"], ["Do you speak English?", "Czy mówi Pan/Pani po angielsku?", "chi MOO-vee pan/PA-nee po an-GYEL-skoo"], ["How much is it?", "Ile to kosztuje?", "EE-leh to kosh-TOO-yeh"], ["The bill, please", "Poproszę rachunek", "po-PRO-sheh ra-HOO-nek"], ["Where is …?", "Gdzie jest …?", "gjeh yest"], ["Is it halal?", "Czy to jest halal?", "chi to yest ha-LAL"], ["I don't eat pork", "Nie jem wieprzowiny", "nyeh yem vyep-sho-VEE-ni"], ["No alcohol", "Bez alkoholu", "bez al-ko-HO-loo"], ["Is there gelatine in it?", "Czy jest w tym żelatyna?", "chi yest f tim zhe-la-TI-na"], ["Where is the mosque?", "Gdzie jest meczet?", "gjeh yest MEH-chet"], ["Help!", "Pomocy!", "po-MO-tsi"]] },
+    sk: { name: "Slovak", where: "Slovakia",
+      card: "Som moslim/moslimka a jem iba halal jedlo. Prosím: žiadne bravčové mäso, šunku, slaninu, masť ani želatínu, a žiadny alkohol ani víno v jedle. Je toto jedlo pre mňa vhodné? Ďakujem!",
+      rows: [["Hello / good day", "Dobrý deň", "DOH-bree dyen"], ["Thank you", "Ďakujem", "DYA-koo-yem"], ["Please", "Prosím", "PRO-seem"], ["Excuse me / sorry", "Prepáčte", "PREH-pach-teh"], ["Do you speak English?", "Hovoríte po anglicky?", "HO-vo-ree-teh po AN-glits-kee"], ["How much is it?", "Koľko to stojí?", "KOL-ko to STO-yee"], ["The bill, please", "Zaplatím, prosím", "ZA-pla-teem PRO-seem"], ["Where is …?", "Kde je …?", "gdyeh yeh"], ["Is it halal?", "Je to halal?", "yeh to HA-lal"], ["I don't eat pork", "Nejem bravčové", "NYEH-yem BRAV-cho-veh"], ["No alcohol", "Bez alkoholu", "bez AL-ko-ho-loo"], ["Help!", "Pomoc!", "PO-mots"]] },
+    sl: { name: "Slovene", where: "Slovenia",
+      card: "Sem musliman/muslimanka in jem samo halal hrano. Prosim: brez svinine, šunke, slanine, masti ali želatine ter brez alkohola ali vina v jedi. Ali je ta jed primerna zame? Hvala!",
+      rows: [["Hello / good day", "Dober dan", "DO-ber dahn"], ["Thank you", "Hvala", "HVAH-la"], ["Please", "Prosim", "PRO-seem"], ["Excuse me / sorry", "Oprostite", "o-PROS-ti-teh"], ["Do you speak English?", "Govorite angleško?", "go-vo-REE-teh ang-LESH-ko"], ["How much is it?", "Koliko stane?", "KO-li-ko STAH-neh"], ["The bill, please", "Račun, prosim", "RA-choon PRO-seem"], ["Where is …?", "Kje je …?", "kyeh yeh"], ["Is it halal?", "Ali je to halal?", "A-li yeh to HA-lal"], ["I don't eat pork", "Ne jem svinine", "neh yem svi-NEE-neh"], ["Where is the mosque?", "Kje je džamija?", "kyeh yeh JA-mi-ya"], ["Help!", "Na pomoč!", "na po-MOCH"]] },
+    da: { name: "Danish", where: "Denmark (almost everyone also speaks English)",
+      card: "Jeg er muslim og spiser kun halal. Venligst: intet svinekød, skinke, bacon, svinefedt eller gelatine, og ingen alkohol eller vin i maden. Er denne ret i orden for mig? Tak!",
+      rows: [["Hello", "Hej", "hai"], ["Thank you", "Tak", "tahk"], ["Excuse me / sorry", "Undskyld", "OON-skool"], ["Do you speak English?", "Taler du engelsk?", "TAY-ler doo ENG-elsk"], ["How much is it?", "Hvad koster det?", "va KOS-ter de"], ["Can I have the bill?", "Må jeg få regningen?", "mo yai fo RAI-ning-en"], ["Where is …?", "Hvor er …?", "vor air"], ["Is it halal?", "Er det halal?", "air de ha-LAL"], ["I don't eat pork", "Jeg spiser ikke svinekød", "yai SPEE-ser IG-geh SVEE-neh-kuhth"], ["Is there gelatine in it?", "Er der gelatine i?", "air dair she-la-TEE-neh ee"], ["Where is the mosque?", "Hvor er moskeen?", "vor air mo-SKAY-en"]] },
+    sv: { name: "Swedish", where: "Sweden (almost everyone also speaks English)",
+      card: "Jag är muslim och äter bara halal. Snälla: inget fläskkött, skinka, bacon, ister eller gelatin, och ingen alkohol eller vin i maten. Passar den här rätten mig? Tack!",
+      rows: [["Hello", "Hej", "hey"], ["Thank you", "Tack", "tahk"], ["Excuse me / sorry", "Ursäkta", "oor-SHEK-ta"], ["Do you speak English?", "Pratar du engelska?", "PRAH-tar doo ENG-el-ska"], ["How much is it?", "Vad kostar det?", "vah KOS-tar deh"], ["Can I have the bill?", "Kan jag få notan?", "kan yah foh NOO-tan"], ["Where is …?", "Var ligger …?", "var LIG-er"], ["Is it halal?", "Är det halal?", "air deh ha-LAHL"], ["I don't eat pork", "Jag äter inte fläsk", "yah AIR-ter IN-teh flesk"], ["Is there gelatine in it?", "Finns det gelatin i?", "fins deh she-la-TEEN ee"], ["Where is the mosque?", "Var ligger moskén?", "var LIG-er mos-KAYN"]] },
+    no: { name: "Norwegian", where: "Norway (almost everyone also speaks English)",
+      card: "Jeg er muslim og spiser bare halal. Vær så snill: ikke svinekjøtt, skinke, bacon, smult eller gelatin, og ikke alkohol eller vin i maten. Passer denne retten for meg? Takk!",
+      rows: [["Hello", "Hei", "hai"], ["Thank you", "Takk", "tahk"], ["Excuse me / sorry", "Unnskyld", "OON-shil"], ["Do you speak English?", "Snakker du engelsk?", "SNAK-ker doo ENG-elsk"], ["How much is it?", "Hva koster det?", "vah KOS-ter deh"], ["Can I have the bill?", "Kan jeg få regningen?", "kan yai fo RAI-ning-en"], ["Where is …?", "Hvor er …?", "voor air"], ["Is it halal?", "Er det halal?", "air deh ha-LAHL"], ["I don't eat pork", "Jeg spiser ikke svinekjøtt", "yai SPEE-ser IK-keh SVEE-neh-shut"], ["Where is the mosque?", "Hvor er moskeen?", "voor air mo-SKAY-en"]] },
+    fi: { name: "Finnish", where: "Finland (English is widely spoken)",
+      card: "Olen muslimi ja syön vain halal-ruokaa. Ei sianlihaa, kinkkua, pekonia, laardia eikä gelatiinia, eikä alkoholia tai viiniä ruokaan, kiitos. Sopiiko tämä ruoka minulle? Kiitos!",
+      rows: [["Hello", "Hei / Moi", "hay / moy"], ["Thank you", "Kiitos", "KEE-tos"], ["Excuse me / sorry", "Anteeksi", "AHN-tek-si"], ["Do you speak English?", "Puhutko englantia?", "POO-hut-ko ENG-lan-ti-a"], ["How much is it?", "Paljonko se maksaa?", "PAL-yon-ko seh MAK-saa"], ["Can I have the bill?", "Saisinko laskun?", "SAI-sin-ko LAS-kun"], ["Where is …?", "Missä on …?", "MIS-sa on"], ["Is it halal?", "Onko tämä halal?", "ON-ko TA-ma HA-lal"], ["I don't eat pork", "En syö sianlihaa", "en SU-er SEE-an-li-haa"], ["Is there gelatine in it?", "Onko tässä gelatiinia?", "ON-ko TAS-sa GE-la-tee-ni-a"], ["Where is the mosque?", "Missä on moskeija?", "MIS-sa on MOS-kay-ya"], ["Help!", "Apua!", "A-poo-a"]] },
+    is: { name: "Icelandic", where: "Iceland (everyone speaks English — these are a courtesy)",
+      card: "Ég er múslimi og borða aðeins halal mat. Vinsamlegast: ekkert svínakjöt, skinku, beikon, svínafeiti eða gelatín, og ekkert áfengi eða vín í matnum. Hentar þessi réttur mér? Takk fyrir!",
+      rows: [["Hello / good day", "Halló / Góðan daginn", "HAL-loh / GOH-than DAI-in"], ["Thank you", "Takk fyrir", "tahk FIR-ir"], ["Excuse me / sorry", "Afsakið", "AF-sa-kith"], ["How much is it?", "Hvað kostar þetta?", "kvath KOS-tar THET-ta"], ["Is it halal?", "Er þetta halal?", "air THET-ta HA-lal"], ["I don't eat pork", "Ég borða ekki svínakjöt", "yeh BOR-tha EH-ki SVEE-na-kyurt"]] },
+    et: { name: "Estonian", where: "Estonia",
+      card: "Ma olen moslem ja söön ainult halal-toitu. Palun ärge pange toitu sealiha, sinki, peekonit, seapekki, želatiini, alkoholi ega veini. Kas see roog sobib mulle? Aitäh!",
+      rows: [["Hello", "Tere", "TEH-reh"], ["Thank you", "Aitäh", "AI-tah"], ["Please", "Palun", "PA-lun"], ["Excuse me / sorry", "Vabandust", "VA-ban-dust"], ["Do you speak English?", "Kas te räägite inglise keelt?", "kas teh RAA-gi-teh ING-li-seh keelt"], ["How much is it?", "Kui palju see maksab?", "kui PAL-yu seh MAK-sab"], ["The bill, please", "Arve, palun", "AR-veh PA-lun"], ["Where is …?", "Kus on …?", "kus on"], ["Is it halal?", "Kas see on halal?", "kas seh on HA-lal"], ["I don't eat pork", "Ma ei söö sealiha", "ma ay sur SEH-a-li-ha"], ["Where is the mosque?", "Kus on mošee?", "kus on mo-SHAY"]] },
+    lv: { name: "Latvian", where: "Latvia",
+      card: "Es esmu musulmanis/musulmaniete un ēdu tikai halal ēdienu. Lūdzu, nelieciet ēdienā cūkgaļu, šķiņķi, speķi, taukus, želatīnu, alkoholu vai vīnu. Vai šis ēdiens man der? Paldies!",
+      rows: [["Hello / good day", "Labdien", "LAB-dyen"], ["Thank you", "Paldies", "PAL-dyes"], ["Please", "Lūdzu", "LOOD-zu"], ["Excuse me / sorry", "Atvainojiet", "AT-vai-no-yet"], ["Do you speak English?", "Vai jūs runājat angliski?", "vai yoos RU-na-yat AN-gli-ski"], ["How much is it?", "Cik tas maksā?", "tsik tas MAK-sa"], ["The bill, please", "Rēķinu, lūdzu", "RAY-tyi-nu LOOD-zu"], ["Where is …?", "Kur ir …?", "kur ir"], ["Is it halal?", "Vai tas ir halal?", "vai tas ir HA-lal"], ["I don't eat pork", "Es neēdu cūkgaļu", "es NEH-eh-du TSOOK-ga-lyu"], ["Where is the mosque?", "Kur ir mošeja?", "kur ir mo-SHEH-ya"]] },
+    lt: { name: "Lithuanian", where: "Lithuania",
+      card: "Esu musulmonas/musulmonė ir valgau tik halal maistą. Prašau nedėti į patiekalą kiaulienos, kumpio, šoninės, taukų, želatinos, alkoholio ar vyno. Ar šis patiekalas man tinka? Ačiū!",
+      rows: [["Hello / good day", "Laba diena", "LA-ba dye-NA"], ["Thank you", "Ačiū", "AH-choo"], ["Please", "Prašau", "pra-SHOW"], ["Excuse me / sorry", "Atsiprašau", "at-si-pra-SHOW"], ["Do you speak English?", "Ar kalbate angliškai?", "ar KAL-ba-teh AN-glish-kai"], ["How much is it?", "Kiek kainuoja?", "kyek kai-NWO-ya"], ["The bill, please", "Sąskaitą, prašau", "SAHS-kai-tah pra-SHOW"], ["Where is …?", "Kur yra …?", "kur ee-RA"], ["Is it halal?", "Ar tai halal?", "ar tai HA-lal"], ["I don't eat pork", "Aš nevalgau kiaulienos", "ash ne-VAL-gow kyau-LYEH-nos"], ["Where is the mosque?", "Kur yra mečetė?", "kur ee-RA meh-CHEH-teh"]] },
+    ro: { name: "Romanian", where: "Romania",
+      card: "Sunt musulman/musulmană și mănânc doar mâncare halal. Vă rog: fără carne de porc, șuncă, bacon, untură sau gelatină și fără alcool sau vin în mâncare. Este acest fel potrivit pentru mine? Mulțumesc!",
+      rows: [["Hello / good day", "Bună ziua", "BOO-nuh ZEE-wa"], ["Thank you", "Mulțumesc", "mool-tsoo-MESK"], ["Please", "Vă rog", "vuh rog"], ["Excuse me / sorry", "Scuzați-mă", "skoo-ZAHTS-muh"], ["Do you speak English?", "Vorbiți engleză?", "vor-BEETS en-GLEH-zuh"], ["How much is it?", "Cât costă?", "kuht KOS-tuh"], ["The bill, please", "Nota, vă rog", "NO-ta vuh rog"], ["Where is …?", "Unde este …?", "OON-deh YES-teh"], ["Is it halal?", "Este halal?", "YES-teh ha-LAL"], ["I don't eat pork", "Nu mănânc carne de porc", "noo muh-NUHNK KAR-neh deh pork"], ["No alcohol", "Fără alcool", "FUH-ruh al-KO-ol"], ["Is there gelatine in it?", "Conține gelatină?", "kon-TSEE-neh je-la-TEE-nuh"], ["Where is the mosque?", "Unde este moscheea?", "OON-deh YES-teh mos-KEH-ya"], ["Help!", "Ajutor!", "a-zhoo-TOR"]] },
+    bg: { name: "Bulgarian", where: "Bulgaria (careful: a nod means 'no' and a head-shake means 'yes')",
+      card: "Аз съм мюсюлманин/мюсюлманка и ям само халал храна. Моля, без свинско месо, шунка, бекон, свинска мас или желатин и без алкохол или вино в храната. Подходящо ли е това ястие за мен? Благодаря!",
+      rows: [["Hello", "Здравейте", "zdra-VAY-teh"], ["Thank you", "Благодаря", "bla-go-da-RYA"], ["Please", "Моля", "MO-lya"], ["Excuse me / sorry", "Извинете", "iz-vi-NEH-teh"], ["Do you speak English?", "Говорите ли английски?", "go-VO-ri-teh li an-GLEE-ski"], ["How much is it?", "Колко струва?", "KOL-ko STROO-va"], ["The bill, please", "Сметката, моля", "SMET-ka-ta MO-lya"], ["Where is …?", "Къде е …?", "kuh-DEH eh"], ["Is it halal?", "Халал ли е?", "ha-LAL li eh"], ["I don't eat pork", "Не ям свинско", "neh yam SVIN-sko"], ["No alcohol", "Без алкохол", "bez al-ko-HOL"], ["Where is the mosque?", "Къде е джамията?", "kuh-DEH eh dja-MEE-ya-ta"], ["Help!", "Помощ!", "PO-mosht"]] },
+    sr: { name: "Serbian / Montenegrin", where: "Serbia and Montenegro (Latin and Cyrillic scripts are both used)",
+      card: "Ja sam musliman/muslimanka i jedem samo halal hranu. Molim vas: bez svinjetine, šunke, slanine, masti ili želatina, i bez alkohola ili vina u jelu. Da li je ovo jelo odgovarajuće za mene? Hvala!",
+      rows: [["Hello / good day", "Dobar dan", "DO-bar dan"], ["Thank you", "Hvala", "HVA-la"], ["Please", "Molim", "MO-lim"], ["Excuse me / sorry", "Izvinite", "IZ-vi-ni-teh"], ["Do you speak English?", "Govorite li engleski?", "GO-vo-ri-teh li EN-gles-ki"], ["How much is it?", "Koliko košta?", "KO-li-ko KOSH-ta"], ["The bill, please", "Račun, molim", "RA-choon MO-lim"], ["Where is …?", "Gde je …?", "gdeh yeh"], ["Is it halal?", "Da li je ovo halal?", "da li yeh O-vo HA-lal"], ["I don't eat pork", "Ne jedem svinjetinu", "neh YE-dem SVI-nye-ti-noo"], ["No alcohol", "Bez alkohola", "bez AL-ko-ho-la"], ["Where is the mosque?", "Gde je džamija?", "gdeh yeh JA-mi-ya"], ["Help!", "Upomoć!", "OO-po-moch"]] },
+    sq: { name: "Albanian", where: "Albania, Kosovo and western North Macedonia",
+      card: "Jam mysliman/myslimane dhe ha vetëm ushqim hallall. Ju lutem: pa mish derri, proshutë, sallo apo xhelatinë, dhe pa alkool apo verë në ushqim. A është i përshtatshëm ky ushqim për mua? Faleminderit!",
+      rows: [["Hello", "Tungjatjeta / Përshëndetje", "tun-jat-YEH-ta / pur-shun-DET-yeh"], ["Peace be upon you", "Selam alejkum", "se-LAHM a-LAY-koom"], ["Thank you", "Faleminderit", "fa-leh-min-DEH-rit"], ["Please", "Ju lutem", "yoo LOO-tem"], ["Excuse me / sorry", "Më falni", "muh FAL-ni"], ["Do you speak English?", "Flisni anglisht?", "FLEES-ni ang-LEESHT"], ["How much is it?", "Sa kushton?", "sa koosh-TON"], ["The bill, please", "Faturën, ju lutem", "fa-TOO-run yoo LOO-tem"], ["Where is …?", "Ku është …?", "koo UHSH-tuh"], ["Is it halal?", "A është hallall?", "a UHSH-tuh ha-LALL"], ["I don't eat pork", "Nuk ha mish derri", "nook ha meesh DEH-ree"], ["Where is the mosque?", "Ku është xhamia?", "koo UHSH-tuh ja-MEE-a"], ["Help!", "Ndihmë!", "NDEEH-muh"]] },
+    mk: { name: "Macedonian", where: "North Macedonia (Albanian is also widely spoken)",
+      card: "Јас сум муслиман/муслиманка и јадам само халал храна. Ве молам: без свинско месо, шунка, сланина, маст или желатин, и без алкохол или вино во храната. Дали ова јадење е соодветно за мене? Благодарам!",
+      rows: [["Hello / good day", "Добар ден", "DO-bar den"], ["Thank you", "Благодарам", "bla-go-DA-ram"], ["Please", "Ве молам", "veh MO-lam"], ["Excuse me / sorry", "Извинете", "iz-vi-NEH-teh"], ["Do you speak English?", "Зборувате ли англиски?", "ZBO-ru-va-teh li an-GLIS-ki"], ["How much is it?", "Колку чини?", "KOL-ku CHI-ni"], ["The bill, please", "Сметката, ве молам", "SMET-ka-ta veh MO-lam"], ["Where is …?", "Каде е …?", "KA-deh eh"], ["Is it halal?", "Дали е халал?", "DA-li eh ha-LAL"], ["I don't eat pork", "Не јадам свинско", "neh YA-dam SVIN-sko"], ["Where is the mosque?", "Каде е џамијата?", "KA-deh eh JA-mi-ya-ta"], ["Help!", "Помош!", "PO-mosh"]] },
+    ru: { name: "Russian", where: "Russia",
+      card: "Я мусульманин/мусульманка и ем только халяльную еду. Пожалуйста, без свинины, ветчины, бекона, сала и желатина, и без алкоголя или вина в блюде. Подходит ли мне это блюдо? Спасибо!",
+      rows: [["Hello", "Здравствуйте", "ZDRAST-vooy-teh"], ["Peace be upon you", "Ассаляму алейкум", "as-sa-LYA-moo a-LAY-koom"], ["Thank you", "Спасибо", "spa-SEE-ba"], ["Please", "Пожалуйста", "pa-ZHAL-sta"], ["Excuse me / sorry", "Извините", "iz-vi-NEE-teh"], ["Do you speak English?", "Вы говорите по-английски?", "vy ga-va-REE-teh pa-an-GLEE-ski"], ["How much is it?", "Сколько стоит?", "SKOL-ka STO-it"], ["The bill, please", "Счёт, пожалуйста", "shchyot pa-ZHAL-sta"], ["Where is …?", "Где …?", "gdyeh"], ["Is it halal?", "Это халяль?", "EH-ta kha-LYAL"], ["I don't eat pork", "Я не ем свинину", "ya nyeh yem svi-NEE-noo"], ["No alcohol", "Без алкоголя", "byez al-ka-GO-lya"], ["Where is the mosque?", "Где мечеть?", "gdyeh mye-CHET"], ["Help!", "Помогите!", "pa-ma-GEE-teh"]] },
   };
 
   function phrasesHTML(langs) {
@@ -1504,6 +1566,7 @@
     if (!A.rail || !B.rail) return false;
     const d = km(A.stay.ll, B.stay.ll);
     if (A.rail === B.rail) return d < 1300;
+    if (["ie", "fi", "ro", "ru"].includes(A.rail) || ["ie", "fi", "ro", "ru"].includes(B.rail)) return false;
     const g = [A.rail, B.rail].sort().join("|");
     if (g === "eu|uk") { const ukSide = A.rail === "uk" ? a : b, other = ukSide === a ? b : a; return ukSide === "lon" && ["par", "bru", "ams"].includes(other); } // Eurostar
     if (g === "es|eu") { const es = A.rail === "es" ? a : b; return es === "bcn" && d < 1100; } // TGV via Barcelona
@@ -1551,7 +1614,7 @@
   function curatedMode(a, b) {
     const first = routeText(a, b).toLowerCase().split(/\.\s|;/)[0];
     const at = (re) => { const m = first.search(re); return m < 0 ? Infinity : m; };
-    const pos = { flight: at(/\bfl(y|ying|ight)/), train: at(/train|eurostar|frecciarossa|railjet|\bave\b|tgv|\bice\b/), bus: at(/coach|\bbus\b/), boat: at(/ferry|catamaran/) };
+    const pos = { flight: at(/\bfl(y|ying|ight)/), train: at(/train|eurostar|frecciarossa|railjet|\bave\b|tgv|\bice\b|sapsan|bergen line/), bus: at(/coach|\bbus\b/), boat: at(/ferry|catamaran/) };
     const best = Object.keys(pos).sort((x, y) => pos[x] - pos[y])[0];
     return pos[best] === Infinity ? "train" : best;
   }
@@ -1571,11 +1634,13 @@
     const island = A.island || B.island;
     const ukCross = (A.country === "gb") !== (B.country === "gb");
     const tr = A.country === "tr" || B.country === "tr";
+    const ru = (A.country === "ru") !== (B.country === "ru");
+    const ieX = (A.country === "ie") !== (B.country === "ie");
     const out = [];
     if (trainOK(a, b)) out.push("train");
     if (d > 280 || island) out.push("flight");
-    if (!island && d < 1200 && (!ukCross || d < 600) && (!tr || d < 700)) out.push("bus");
-    if (!island && d < 900 && !ukCross && !tr) out.push("car");
+    if (!island && !ru && !ieX && d < 1200 && (!ukCross || d < 600) && (!tr || d < 700)) out.push("bus");
+    if (!island && !ru && !ieX && d < 900 && !ukCross && !tr) out.push("car");
     if (BOATS[key]) out.push("boat");
     if (!out.length) out.push("flight");
     return out;
@@ -1607,7 +1672,7 @@
       case "bus": { const ride = quoted || Math.round((road / 70) * 60); return { door: 30 + 15 + ride + 20, ride, cost: "€" + r5e(road * 0.05) + "–" + r5e(road * 0.1), lead: 45 }; }
       case "car": { const ride = Math.round((road / 85) * 60 + 20); return { door: ride + 30, ride, cost: "€" + r5e(60 + road * 0.15) + "–" + r5e(100 + road * 0.25) + " (hire, fuel & tolls)", lead: 30 }; }
       case "boat": { const ride = boat ? boat.min : Math.round((d / 30) * 60); return { door: 30 + 30 + ride + 20, ride, cost: boat ? boat.cost : "varies", lead: 60 }; }
-      default: { const ride = quoted || Math.round(((d * 1.2) / 140) * 60 + 15); return { door: 25 + 20 + ride + 20, ride, cost: "€" + r5e(d * 0.08) + "–" + r5e(d * 0.25) + " (cheapest booked early)", lead: 45 }; }
+      default: { const ride = quoted || Math.round(((d * 1.2) / (CITIES[a].slowRail || CITIES[b].slowRail ? 60 : 140)) * 60 + 15); return { door: 25 + 20 + ride + 20, ride, cost: "€" + r5e(d * 0.08) + "–" + r5e(d * 0.25) + " (cheapest booked early)", lead: 45 }; }
     }
   }
   const dur = (m) => (m < 90 ? m + " min" : (Math.round(m / 30) / 2).toString().replace(".5", "½") + " h");
@@ -1744,7 +1809,7 @@
     };
     const base = `<g transform="translate(${(-vx * Z).toFixed(1)} ${(-vy * Z).toFixed(1)}) scale(${Z.toFixed(4)})"><path class="map-land" d="${MAP_GEO.land}"/><path class="map-border" d="${MAP_GEO.borders}"/></g>`;
     const inView = (q) => q[0] > 40 && q[0] < W - 40 && q[1] > 20 && q[1] < H - 20;
-    const seas = [["Atlantic Ocean", 45.5, -8.6], ["North Sea", 56.0, 3.0], ["Mediterranean Sea", 38.3, 5.2], ["Tyrrhenian Sea", 39.8, 12.2], ["Adriatic", 42.9, 15.3], ["Aegean", 38.6, 25.0], ["Baltic", 55.4, 16.5]]
+    const seas = [["Atlantic Ocean", 45.5, -8.6], ["North Sea", 56.0, 3.0], ["Mediterranean Sea", 38.3, 5.2], ["Tyrrhenian Sea", 39.8, 12.2], ["Adriatic", 42.9, 15.3], ["Aegean", 38.6, 25.0], ["Baltic", 55.4, 16.5], ["Black Sea", 43.3, 34.0], ["Norwegian Sea", 65.0, 4.0], ["Bay of Biscay", 45.3, -4.5]]
       .map(([t, la, lo]) => { const q = toXY([la, lo]); return inView(q) ? `<text class="map-sea" x="${q[0].toFixed(0)}" y="${q[1].toFixed(0)}">${t}</text>` : ""; }).join("");
     const china = seq.map((p) => CITIES[p.id].country).filter((v, i, a) => a.indexOf(v) === i)
       .map((c) => { const q = toXY(COUNTRIES[c].ll); return inView(q) ? `<text class="map-country" x="${q[0].toFixed(0)}" y="${q[1].toFixed(0)}">${esc(COUNTRIES[c].name.toUpperCase())}</text>` : ""; }).join("");

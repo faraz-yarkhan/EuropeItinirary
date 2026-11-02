@@ -1,9 +1,9 @@
 # Europe Trip Planner
 
-A single-page travel planner for 32 cities in 16 European countries — the companion to the China & Hong Kong planner. Open `index.html` (or the one-file `europe-trip-planner.html`) in any browser — no server or install needed.
+A single-page travel planner for 56 cities in 36 European countries — the companion to the China & Hong Kong planner. Open `index.html` (or the one-file `europe-trip-planner.html`) in any browser — no server or install needed.
 
 ## What you enter
-1. **Countries** you'll visit (UK, France, the Netherlands, Belgium, Germany, Switzerland, Austria, Czechia, Hungary, Italy, Spain, Portugal, Greece, Croatia, Bosnia & Herzegovina, Türkiye)
+1. **Countries** you'll visit, grouped by region: Western (UK, Ireland, France, Belgium, Netherlands), Central (Germany, Switzerland, Austria, Czechia, Slovakia, Poland, Hungary, Slovenia), Nordic & Baltic (Denmark, Sweden, Norway, Finland, Iceland, Estonia, Latvia, Lithuania), Southern (Italy, Spain, Portugal, Greece, Malta), Balkans & South-East (Croatia, Bosnia & Herzegovina, Serbia, Montenegro, Albania, North Macedonia, Romania, Bulgaria, Türkiye) and Eastern (Russia — shown with the Australian Government's "Do not travel" advice). Ukraine and Belarus are not included: both are under "Do not travel" advice.
 2. **Cities** in those countries (one-tap suggestions per country), and the places you want to see in each — or leave it to the planner's top-rated picks
 3. **Nights in each city**, with our suggested number beside each (one tap applies them all); the trip length follows automatically
 4. **Dates & flights**: optional start date, arrival and departure cities, landing/take-off times and flight numbers, and how you'll travel between cities (train, flight, coach, hire car or ferry, with optional times) — or tick "Recommend the best city order and transport"
@@ -14,17 +14,17 @@ Plus pace, hotel budget, passport (Australian / other) and home airport (Sydney 
 ## What you get
 - **Hour-by-hour plan you can edit** for every day: breakfast (with halal tips for hotel buffets), sights, halal lunch, a named café stop, a golden-hour **photo stop**, dinner, the evening activity and travel — plus flights, train times and Friday Jumu'ah. Add sights, halal restaurants, cafés, photo spots or anything of your own
 - **Recommendations in every city**: top-rated sights (★), halal restaurants, mosques, cafés & desserts, Instagram-worthy spots with the best time to shoot, hotels by budget, the best area to stay, and local dishes (with what to avoid)
-- **Transport that reflects Europe's real network**: Eurostar only where it runs, high-speed rail with researched times and fares for ~90 routes, flights to islands, the Split–Dubrovnik catamaran in summer (bus out of season), coaches where there's no railway
-- **Entry rules by zone**: the Schengen 90-in-180 day count, the EU Entry/Exit System, ETIAS status, the UK ETA, Türkiye and Bosnia — tailored for Australian passports (as checked November 2026)
-- **Season and holiday warnings** from your dates: summer heat and crowds, Ferragosto, Christmas closures and markets, Alpine winter, Santorini off-season, Ramadan and Eid
+- **Transport that reflects Europe's real network**: Eurostar only where it runs, rail with researched times and fares for ~150 routes (including the Bergen Line and Sapsan), flights to islands, the Helsinki–Tallinn ferry, the Split–Dubrovnik catamaran in summer (bus out of season), Baltic and Balkan coaches where trains are slow or missing, and no rail or road into Russia from the EU
+- **Entry rules by zone**: the Schengen 90-in-180 day count, the EU Entry/Exit System, ETIAS status, the UK ETA, Ireland, Türkiye, the Western Balkans and Russia — tailored for Australian passports (as checked November 2026)
+- **Season and holiday warnings** from your dates: summer heat and crowds, Ferragosto, Christmas closures and markets, Alpine and Nordic winter, white nights (with high-latitude prayer-time advice), Santorini off-season, Ramadan and Eid
 - **Maps**: a built-in route map that zooms to your trip (works offline and in print), a street map of every stop by day, and Google Maps links
 - **Before you go**: visas, flights from Sydney, Australian reciprocal health care, face-covering laws, insurance, apps, money, tips and a saved checklist
-- **Phrases & halal cards** in the languages on your route (French, Italian, Spanish, Portuguese, German, Dutch, Czech, Hungarian, Greek, Croatian/Bosnian, Turkish)
+- **Phrases & halal cards** in the 28 languages on your route
 - **Print** (one page per day, auto-fitted to A4), **Save offline copy** (script-free HTML that opens in any phone preview) and **Copy as text**
 
 ## Files
 - `index.html` — page and styles
-- `data.js` — trip types and countries; `cities-*.js` — the city database (edit these to add destinations)
+- `data.js` — trip types, countries and border zones; `cities-*.js` — the city database (edit these to add destinations)
 - `routes.js` — intercity routes, ferries and flights from Sydney
 - `map-data.js` — simplified land and border outlines (Natural Earth, public domain), generated by `tools/build-map-data.js`
 - `app.js` — form, itinerary engine and rendering

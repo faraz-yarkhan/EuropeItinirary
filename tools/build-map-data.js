@@ -3,7 +3,7 @@
 const tj = require('topojson-client');
 const land = require('world-atlas/land-50m.json');
 const ctry = require('world-atlas/countries-50m.json');
-const LON0 = -11, LON1 = 31.5, LAT0 = 34.2, LAT1 = 59.5, COS = Math.cos(47 * Math.PI / 180);
+const LON0 = -25, LON1 = 40.5, LAT0 = 34.2, LAT1 = 66.8, COS = Math.cos(50 * Math.PI / 180);
 const K = 1000 / ((LON1 - LON0) * COS);
 const W = 1000, H = Math.round((LAT1 - LAT0) * K);
 const M = 30; // clamp margin in px
@@ -32,13 +32,13 @@ function rings(geom) { return geom.type === 'Polygon' ? geom.coordinates : geom.
 let landPath = '';
 for (const f of tj.feature(land, land.objects.land).features) for (const r of rings(f.geometry)) {
   const p = r.map(proj); if (!inside(p)) continue;
-  const s = dpRing(p.map(clamp), 0.7); if (s.length > 3) landPath += fmt(s, true);
+  const s = dpRing(p.map(clamp), 0.3); if (s.length > 3) landPath += fmt(s, true);
 }
 let borderPath = '';
 const mesh = tj.mesh(ctry, ctry.objects.countries, (a, b) => a !== b);
-for (const line of mesh.coordinates) { const p = line.map(proj); if (!inside(p)) continue; const s = dp(p.map(clamp), 0.7); if (s.length > 1) borderPath += fmt(s, false); }
+for (const line of mesh.coordinates) { const p = line.map(proj); if (!inside(p)) continue; const s = dp(p.map(clamp), 0.3); if (s.length > 1) borderPath += fmt(s, false); }
 const out = `/* Trip map geography: Natural Earth 1:50m land and borders (public domain), simplified.
-   Equirectangular projection: x = (lon - ${LON0}) * cos(47°) * K, y = (${LAT1} - lat) * K. */
+   Equirectangular projection: x = (lon - ${LON0}) * cos(50°) * K, y = (${LAT1} - lat) * K. */
 const MAP_GEO = { w: ${W}, h: ${H}, lon0: ${LON0}, lat1: ${LAT1}, cos: ${COS.toFixed(6)}, k: ${K.toFixed(4)},
   land: "${landPath}",
   borders: "${borderPath}" };
