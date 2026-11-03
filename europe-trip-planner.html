@@ -4825,8 +4825,9 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     const d = km(from.ll, to.ll);
     const farMins = Math.round(((d * 1.35) / 45) * 60 + 15);
     if (d < 0.15) return { mode: "Walk", mins: 0, text: "You're already here." };
-    if (to.x && d > 12) return { mode: "Trip", mins: farMins, text: esc(to.x) };
+    if (to.x && d > 12) return { mode: "Trip", mins: to.xMins || farMins, text: esc(to.x) };
     if (from.x && d > 12) {
+      if (from.xMins) return { mode: "Return", mins: from.xMins, text: "Head back the way you came: " + esc(from.x) };
       if (to.hotel) return { mode: "Return", mins: farMins, text: "Head back the way you came: " + esc(from.x) };
       const onward = getThere(hotelPoint(city), to, city);
       return { mode: "Return", mins: farMins, text: "Head back to town the way you came, then: " + onward.text };
@@ -5038,7 +5039,8 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     const wl = wishLabels(p, ctx.prefs.wish);
     const why = p.custom ? ["pick", "Your own place"] : p.insta && ctx.sel.has(p.id) ? ["pick", "📸 Your photo spot"] : p.insta ? ["rec", "📸 Instagram spot"] : ctx.sel.has(p.id) ? ["pick", "Your pick"] : wl.length ? ["top", "Matches your wishes · " + wl[0]] : p.r === 3 ? ["top", "★ Top rated"] : matched.length ? ["rec", "Recommended · " + matched.slice(0, 2).join(", ")] : ["rec", "Recommended"];
     const slot = { part, type: "act", p, alt, why, how: getThere(prev, p, city), insta: p.insta ? null : nearest(city.insta, p.ll, 1.5) };
-    if (part === "m" || part === "full") slot.eat = { label: part === "full" ? "Lunch (halal)" : "Lunch nearby (halal)", ...eatNear(city, p.ll) };
+    const foodCity = p.dayCity && CITIES[p.dayCity] ? CITIES[p.dayCity] : city;
+    if (part === "m" || part === "full") slot.eat = { label: part === "full" ? (p.dayCity ? `Lunch in ${foodCity.name.replace(/ \(.*\)/, "")} (halal)` : "Lunch (halal)") : "Lunch nearby (halal)", ...eatNear(foodCity, p.ll) };
     if (part === "n") slot.eat = { label: "Dinner nearby (halal)", ...eatNear(city, p.ll) };
     return slot;
   }
@@ -5348,7 +5350,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
           <button type="button" class="icon-btn" data-act="remove" data-i="${i}" aria-label="Remove ${esc(c.name)}">✕</button></div>
         ${legRow(st, i)}
         ${hotelRow(st, i)}
-        <div class="row"><select id="place-${i}" data-act="place" data-i="${i}" aria-label="Add a place in ${esc(c.name)}"><option value="">Add a place to see…</option>${opts}</select>${ownOpen[st.city] ? "" : `<button type="button" class="btn small" data-act="ownopen" data-i="${i}">➕ Add my own place</button>`}</div>
+        <div class="row"><select id="place-${i}" data-act="place" data-i="${i}" aria-label="Add a place in ${esc(c.name)}"><option value="">Add a place to see…</option>${opts}</select>${ownOpen[st.city] ? "" : `<button type="button" class="btn small" data-act="ownopen" data-i="${i}">➕ Add my own idea</button>`}</div>
         ${ownOpen[st.city] ? ownPlaceForm(st, i) : ""}
         ${chips ? `<div class="chips">${chips}<button type="button" class="btn small" data-act="addtop" data-i="${i}" title="Add the top-rated places you haven't picked yet">★ Add top picks</button></div>` : `<p class="hint suggest">No places chosen, so we'll plan the top-rated ones for your trip style, e.g. ${topPicks(st.city, 3).map((p) => esc(p.n.split(/[:(&]/)[0].trim())).join(", ")}${topInsta(st.city, 1).length ? `, plus the photo spot 📸 ${esc(topInsta(st.city, 1)[0].n.split(/[:(]/)[0].trim())}` : ""}. <button type="button" class="btn small" data-act="addtop" data-i="${i}">Add top picks</button></p>`}
       </div>`;
@@ -5377,53 +5379,127 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
   /* ---------- "Add my own place": look it up on Wikipedia (description + location), else OpenStreetMap ---------- */
   const ownOpen = {}, ownFound = {};
   function ownPlaceForm(st, i) {
-    const c = CITIES[st.city], f = ownFound[st.city];
-    const far = f && f.ll && km(c.stay.ll, f.ll) > 15;
+    const c = CITIES[st.city];
     return `<div class="ownplace">
-      <b class="hint">Your own place in ${esc(c.name)}</b>
-      <div class="row"><input type="text" id="ownname-${i}" placeholder="Name, e.g. Shakespeare's Globe" value="${esc((f && f.query) || "")}" aria-label="Place name" autocomplete="off">
-        <button type="button" class="btn small" data-act="ownfind" data-i="${i}">🔎 Look it up</button></div>
-      <input type="text" id="ownll-${i}" data-act="ownll" data-i="${i}" placeholder="…or paste a Google Maps link or coordinates" aria-label="Google Maps link or coordinates" autocomplete="off">
-      <div class="hint" id="ownmsg-${i}">${f ? ownFoundHTML(f, c) : "We'll look it up on Wikipedia and OpenStreetMap, then plan it with directions and halal food nearby."}</div>
-      ${f && f.ll ? `<div class="row">
-        <label class="hint" for="ownslot-${i}">When</label><select id="ownslot-${i}" style="flex:1 1 120px"><option value="m">Morning</option><option value="e">Afternoon</option><option value="n">Evening</option><option value="full" ${far ? "selected" : ""}>Full day</option></select>
-        <label class="hint" for="ownh-${i}">Time</label><select id="ownh-${i}" style="flex:1 1 90px"><option>1 h</option><option selected>2 h</option><option>3 h</option><option value="4 h">Half day (4 h)</option><option ${far ? "selected" : ""}>Full day</option></select></div>
-        <div class="actions"><button type="button" class="btn small print-btn" data-act="ownadd" data-i="${i}">✓ Add to my places</button>` : `<div class="actions">`}
-        <button type="button" class="btn small" data-act="ownclose" data-i="${i}">Cancel</button></div>
+      <b class="hint">Add your own idea in ${esc(c.name)}</b>
+      <div class="row"><input type="text" id="ownname-${i}" placeholder="e.g. Day trip to Florence · Lake Como · Sunset at a rooftop · Shakespeare's Globe" aria-label="Your idea" autocomplete="off" value="${esc(ownFound[st.city] || "")}">
+        <button type="button" class="btn small print-btn" data-act="ownfind" data-i="${i}">➕ Add</button><button type="button" class="btn small" data-act="ownclose" data-i="${i}">Done</button></div>
+      <div class="hint" id="ownmsg-${i}">${ownMsg[st.city] || "Write it the way you'd say it — a place, a day trip or something to do, with “morning”, “sunset” or “2 hours” if you like. We'll work out where it is, how to get there and where it fits."}</div>
     </div>`;
   }
-  function ownFoundHTML(f, c) {
-    if (!f.ll) return `${f.msg ? esc(f.msg) : ""}`;
-    return `📍 <b>${esc(f.n)}</b> — ${esc(fromCentre(c, f.ll))}${f.src ? ` · from ${esc(f.src)}` : ""}${f.url ? ` · <a href="${esc(f.url)}" target="_blank" rel="noopener">read more ↗</a>` : ""}${f.d ? `<br>${esc(firstSentence(f.d))}` : ""}`;
+  const ownMsg = {};
+  const fold = (t) => String(t).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[’']/g, "'");
+  // When and how long, from words like "sunset", "morning", "2 hours", "half day", "day trip"
+  function ideaTiming(t) {
+    const x = fold(t);
+    let slot = null, h = null;
+    if (/day ?trip|full day|whole day|all day/.test(x)) slot = "full";
+    else if (/sunset|evening|night|dinner|after dark|blue hour/.test(x)) slot = "n";
+    else if (/sunrise|morning|breakfast|early/.test(x)) slot = "m";
+    else if (/afternoon|lunch/.test(x)) slot = "e";
+    const m = x.match(/(\d+(?:\.\d)?)\s*(?:h|hr|hrs|hours?)\b/);
+    if (m) h = m[1] + " h"; else if (/half ?day/.test(x)) h = "4 h"; else if (/(\d+)\s*min/.test(x)) h = x.match(/(\d+)\s*min/)[1] + " min";
+    return { slot, h };
   }
-  const getJSON = (url) => fetch(url, { headers: { Accept: "application/json" } }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
-  function lookUpPlace(i) {
-    const st = state.stops[i], c = CITIES[st.city], cid = st.city;
-    const q = ($("#ownname-" + i).value || "").trim();
-    if (!q) { $("#ownname-" + i).focus(); return; }
-    const msg = (t) => { const m = $("#ownmsg-" + i); if (m) m.innerHTML = t; };
-    msg("Looking it up…");
-    const near = (ll) => ll && km(c.stay.ll, ll) < 80;
+  // The "subject" of the idea: drop filler like "day trip to", "visit", "from Milan", timing words
+  function ideaSubject(t, fromCity) {
+    let x = " " + fold(t) + " ";
+    [fold(fromCity.name.replace(/ \(.*\)/, "")), fold(fromCity.local || "")].filter(Boolean).forEach((n) => { x = x.replace(new RegExp("\\b(from|in|near|around)\\s+" + n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "g"), " "); });
+    x = x.replace(/\b(a |an |the )?(full |half |whole )?day ?trips? (to|out to)?|\b(i |we )?(want|would like|'d like|wanna|like) to\b|\b(go|going|visit|visiting|see|seeing|do|doing|check out|take|have|add|include|plan|watch|catch)\b|\b(the )?(sunset|sunrise|morning|afternoon|evening|night|for|at|in the|on the|after dark)\b|\b\d+(\.\d)?\s*(h|hr|hrs|hours?|min|mins|minutes)\b|\bhalf ?day\b|\bfull day\b|\bplease\b/g, " ");
+    return x.replace(/\s+/g, " ").replace(/^(to|a|an|the|at|of)\s+/, "").trim();
+  }
+  // Best way there and back for a day trip between two of our cities
+  function dayTripTransport(fromId, toId) {
+    const m = recommendedMode(fromId, toId), e = modeEstimate(m, fromId, toId);
+    return { m, mins: e.door, text: `${MODE[m].icon} ${MODE[m].label} ${CITIES[fromId].name.replace(/ \(.*\)/, "")} → ${CITIES[toId].name.replace(/ \(.*\)/, "")}, about ${dur(e.ride)} each way (${dur(e.door)} door to door), approx. ${e.cost}. ${firstSentence(routeText(fromId, toId))}` };
+  }
+  function addIdea(i) {
+    const st = state.stops[i], cid = st.city, c = CITIES[cid];
+    const raw = ($("#ownname-" + i).value || "").trim();
+    const say = (h) => { ownMsg[cid] = h; const m = $("#ownmsg-" + i); if (m) m.innerHTML = h; };
+    if (!raw) { $("#ownname-" + i).focus(); return; }
+    const tm = ideaTiming(raw), subj = ideaSubject(raw, c), fs = fold(subj);
+    const pasted = parseLL(raw);
+    const keyOf = (n) => fold(n.split(/[:(&—,]/)[0].replace(/^the /i, "").trim());
+    const finish = (p, msg) => {
+      if (p.custom) { (state.custom[cid] = state.custom[cid] || []).push(p); syncCustomPlaces(); }
+      if (st.places.indexOf(p.id) < 0) st.places.push(p.id);
+      ownFound[cid] = "";
+      persist(); renderStops();
+      say(msg + " Press “Build / update my itinerary” to fit it into your days. Add another idea, or tap Done.");
+      toast(`Added to ${c.name}: ${p.n}`);
+    };
+    const makeCustom = (o) => Object.assign({ id: cid + "-u" + Date.now().toString(36), custom: true, c: "Check the official website", r: 2, idea: raw }, o);
+    if (!fs && !pasted) { say("Tell us a place or activity, e.g. “Day trip to Florence” or “Sunset at Montmartre”."); return; }
+    // 1. Another city in the planner → a day trip there
+    const wordIn = (k, txt) => new RegExp("(^|[^a-z])" + k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "($|[^a-z])").test(txt);
+    const cityHit = Object.keys(CITIES).filter((id) => id !== cid).find((id) => {
+      const k = keyOf(CITIES[id].name), l = CITIES[id].local ? keyOf(CITIES[id].local) : "";
+      if (k === "nice" || k === "split") return new RegExp("\\b" + k.charAt(0).toUpperCase() + k.slice(1) + "\\b").test(raw); // ordinary words unless capitalised
+      return (k.length > 3 && wordIn(k, fs)) || (l.length > 3 && wordIn(l, fs));
+    });
+    if (cityHit) {
+      const T = CITIES[cityHit], tr = dayTripTransport(cid, cityHit), tops = T.places.filter((p) => p.r === 3 && !p.x && !p.insta).slice(0, 3).map((p) => p.n.split(/[:(]/)[0].trim());
+      const hours = Math.max(3, Math.round(10 - (2 * tr.mins) / 60));
+      const p = makeCustom({ n: "Day trip to " + T.name.replace(/ \(.*\)/, ""), dayCity: cityHit, ll: T.stay.ll, s: ["full"], h: hours + " h", t: ["sightseeing", "culture"], x: tr.text, xMins: tr.mins,
+        d: T.intro + (tops.length ? " Highlights: " + tops.join(", ") + "." : ""), c: "Transport " + modeEstimate(tr.m, cid, cityHit).cost + " each way, plus entry fees",
+        tip: tops.length ? `With ${hours} h on the ground, pick one or two highlights (${tops.join(", ")}) and book timed tickets ahead.` : "" });
+      const long = tr.mins > 240;
+      finish(p, `✓ <b>Day trip to ${esc(T.name)}</b> — ${esc(MODE[tr.m].label.toLowerCase())}, about ${esc(dur(tr.mins))} door to door each way, about ${hours} h there.${long ? ` <b>That's a long day</b> — consider adding ${esc(T.name)} as a stop with a night or two instead.` : ""}${state.stops.some((x) => x.city === cityHit) ? ` (${esc(T.name)} is already a stop on your trip.)` : ""}`);
+      return;
+    }
+    // 2. A place we already know — in this city, or elsewhere (then it's a day trip)
+    if (fs.length >= 4) {
+      const pool = [];
+      Object.keys(CITIES).forEach((id) => CITIES[id].places.forEach((p) => { if (!p.custom) pool.push({ id, p }); }));
+      // every distinctive word you typed must appear in the place's name
+      const GENERIC = /^(museum|palace|park|tower|castle|church|cathedral|garden|gardens|square|bridge|lake|town|city|old|new|street|market|beach|view|views|rooftop|hill|spot|place|walk|tour|cruise|river|island|centre|center|great|royal|national|grand|little|with|and)$/;
+      const toks = fs.split(/[^a-z0-9']+/).filter((w) => w.length >= 4);
+      const distinct = toks.filter((w) => !GENERIC.test(w));
+      const matchP = (p) => { const nmf = fold(p.n + " " + (p.loc || "")); const k = keyOf(p.n); return (k.length >= 4 && wordIn(k, fs)) || (distinct.length > 0 && toks.every((w) => nmf.indexOf(w.replace(/'s$/, "")) >= 0)); };
+      const hit = pool.filter((o) => matchP(o.p)).sort((a, b) => (a.id === cid ? 0 : 1) - (b.id === cid ? 0 : 1) || (a.p.insta ? 1 : 0) - (b.p.insta ? 1 : 0) || km(c.stay.ll, a.p.ll) - km(c.stay.ll, b.p.ll))[0];
+      if (hit && hit.id === cid) { finish(hit.p, `✓ <b>${esc(hit.p.n)}</b> — it's in our ${esc(c.name)} list, so it comes with directions, tips and halal food nearby.`); return; }
+      if (hit && km(c.stay.ll, hit.p.ll) < 400) {
+        const tr = dayTripTransport(cid, hit.id);
+        const p = makeCustom({ n: hit.p.n + " (day trip)", dayCity: hit.id, ll: hit.p.ll, s: ["full"], h: Math.max(3, Math.round(10 - (2 * tr.mins) / 60)) + " h", t: hit.p.t, x: tr.text, xMins: tr.mins, d: hit.p.d, tip: hit.p.tip, c: hit.p.c });
+        finish(p, `✓ <b>${esc(hit.p.n)}</b> as a day trip from ${esc(c.name)} — ${esc(MODE[tr.m].label.toLowerCase())}, about ${esc(dur(tr.mins))} each way.`);
+        return;
+      }
+    }
+    // 3. Pasted map link or coordinates
+    const placeFromLL = (ll, name, d, url, src) => {
+      const dist = km(c.stay.ll, ll), far = dist > 15;
+      const xMins = Math.round(((dist * 1.3) / 60) * 60 + 30);
+      return makeCustom({ n: name, ll, d: d || "Your own idea.", url, s: tm.slot ? [tm.slot] : [far ? "full" : "e"], h: tm.h || (far ? Math.max(3, Math.round(10 - (2 * xMins) / 60)) + " h" : "2 h"),
+        t: guessTags(name + " " + (d || "")), x: far ? `About ${Math.round(dist)} km from ${c.name.replace(/ \(.*\)/, "")} — check the best train or bus in Google Maps (roughly ${dur(xMins)} each way).` : undefined, xMins: far ? xMins : undefined,
+        tip: `Your idea${src ? " (found on " + src + ")" : ""} — check opening hours and tickets before you go.` });
+    };
+    if (pasted) {
+      if (km(c.stay.ll, pasted) > 400) { say(`That location is ${Math.round(km(c.stay.ll, pasted))} km from ${esc(c.name)} — too far for a day trip. Check the link.`); return; }
+      const nm = raw.replace(/https?:\/\/\S+/g, "").replace(/-?\d+\.\d+\s*,\s*-?\d+\.\d+/, "").trim() || "My place";
+      finish(placeFromLL(pasted, nm, "", "", "your map link"), `✓ <b>${esc(nm)}</b> added at the location you pasted.`);
+      return;
+    }
+    // 4. Look it up: Wikipedia (description + location), then OpenStreetMap
+    say("Looking it up…");
     const cityName = c.name.replace(/ \(.*\)/, "");
-    // 1. Wikipedia: search, then the first article with coordinates near the city
-    getJSON("https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&origin=*&srlimit=5&srsearch=" + encodeURIComponent(q + " " + cityName))
+    const near = (ll) => ll && km(c.stay.ll, ll) < 400;
+    getJSON("https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&origin=*&srlimit=5&srsearch=" + encodeURIComponent(subj + " " + cityName))
       .then((res) => {
         const titles = ((res.query && res.query.search) || []).map((x) => x.title);
         return titles.reduce((chain, title) => chain.then((found) => found || getJSON("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(title.replace(/ /g, "_")))
           .then((sm) => (sm.coordinates && near([sm.coordinates.lat, sm.coordinates.lon]) ? { n: sm.title, d: sm.extract || "", ll: [sm.coordinates.lat, sm.coordinates.lon], url: sm.content_urls && sm.content_urls.desktop && sm.content_urls.desktop.page, src: "Wikipedia" } : null))
-          .catch(() => null)), Promise.resolve(null))
-          .then((found) => found || (titles[0] ? getJSON("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titles[0].replace(/ /g, "_"))).then((sm) => ({ d: sm.extract || "", url: sm.content_urls && sm.content_urls.desktop && sm.content_urls.desktop.page })).catch(() => ({})) : {}));
+          .catch(() => null)), Promise.resolve(null));
       })
-      .catch(() => ({}))
-      // 2. No location yet? OpenStreetMap
-      .then((wp) => wp && wp.ll ? wp : getJSON("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=en&q=" + encodeURIComponent(q + ", " + cityName))
-        .then((list) => { const hit = (list || []).map((x) => ({ x, ll: [+x.lat, +x.lon] })).filter((o) => near(o.ll))[0]; return hit ? { n: q, d: (wp && wp.d) || "", url: wp && wp.url, ll: hit.ll, src: wp && wp.d ? "Wikipedia & OpenStreetMap" : "OpenStreetMap" } : { n: q, d: (wp && wp.d) || "", url: wp && wp.url }; })
-        .catch(() => ({ n: q, d: (wp && wp.d) || "", url: wp && wp.url })))
+      .catch(() => null)
+      .then((wp) => wp || getJSON("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=en&q=" + encodeURIComponent(subj + ", " + cityName))
+        .then((list) => { let hit = (list || []).map((x) => ({ x, ll: [+x.lat, +x.lon] })).filter((o) => near(o.ll)).sort((a, b) => km(c.stay.ll, a.ll) - km(c.stay.ll, b.ll))[0];
+          return hit ? { n: subj.replace(/\b\w/g, (ch) => ch.toUpperCase()), d: "", ll: hit.ll, src: "OpenStreetMap" } : null; })
+        .catch(() => null))
       .then((f) => {
-        f.query = q; f.n = f.n || q;
-        if (!f.ll) f.msg = `Couldn't find “${q}” on the map near ${cityName}. Check the spelling, or paste its Google Maps link or coordinates below.`;
-        ownFound[cid] = f;
-        renderStops();
+        if (!f) { say(`Couldn't find “${esc(subj)}” near ${esc(cityName)}. Check the spelling, add more detail (e.g. the area), or paste a Google Maps link with your idea.`); return; }
+        const p = placeFromLL(f.ll, f.n, f.d ? firstSentence(f.d) : "", f.url, f.src);
+        finish(p, `✓ <b>${esc(p.n)}</b> — found on ${esc(f.src)}, ${esc(fromCentre(c, f.ll))}${p.x ? " (planned as a day trip)" : ""}.`);
       });
   }
   // Guess tags from the description so trip style and your wishes apply to it too
@@ -5437,22 +5513,6 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     if (/view|panoram|tower|bridge|square/.test(x)) out.push("photo");
     return out.filter((v, k, a) => a.indexOf(v) === k);
   }
-  function addOwnPlace(i) {
-    const st = state.stops[i], cid = st.city, c = CITIES[cid], f = ownFound[cid];
-    if (!f || !f.ll) return;
-    const slot = $("#ownslot-" + i).value, h = $("#ownh-" + i).value, d = km(c.stay.ll, f.ll);
-    const p = { id: cid + "-u" + Date.now().toString(36), custom: true, n: f.n, d: f.d ? firstSentence(f.d) + (firstSentence(f.d) !== f.d ? " " + firstSentence(f.d.slice(firstSentence(f.d).length).trim()) : "") : "Your own addition.",
-      t: guessTags(f.n + " " + f.d), s: [slot], h, c: "Check the official website", ll: f.ll, r: 2, url: f.url,
-      tip: `Added by you${f.src ? " (looked up on " + f.src + ")" : ""} — check opening hours and tickets before you go.` };
-    if (d > 15) p.x = `About ${Math.round(d)} km from ${c.name} — check the best train or bus in Google Maps.`;
-    (state.custom[cid] = state.custom[cid] || []).push(p);
-    st.places.push(p.id);
-    syncCustomPlaces();
-    delete ownFound[cid]; ownOpen[cid] = false;
-    persist(); renderStops();
-    toast(`${p.n} added to ${c.name}. Press “Build / update my itinerary” to fit it into your days.`);
-  }
-
   // Which hotel you're staying in: one of our three picks, your own (found on the map), or not decided yet
   function hotelRow(st, i) {
     const c = CITIES[st.city], h = state.hotels[st.city] || {}, sel = h.pick || "";
@@ -5598,9 +5658,8 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       if (act === "quick") { addCity(b.dataset.city); return; }
       if (act === "hotelfind") { findHotel(i); return; }
       if (act === "ownopen") { ownOpen[state.stops[i].city] = true; renderStops(); const n = $("#ownname-" + i); if (n) n.focus(); return; }
-      if (act === "ownclose") { const cid = state.stops[i].city; ownOpen[cid] = false; delete ownFound[cid]; renderStops(); return; }
-      if (act === "ownfind") { lookUpPlace(i); return; }
-      if (act === "ownadd") { addOwnPlace(i); return; }
+      if (act === "ownclose") { const cid = state.stops[i].city; ownOpen[cid] = false; delete ownFound[cid]; delete ownMsg[cid]; renderStops(); return; }
+      if (act === "ownfind") { addIdea(i); return; }
       if (act === "up" && i > 0) [state.stops[i - 1], state.stops[i]] = [state.stops[i], state.stops[i - 1]];
       else if (act === "down" && i < state.stops.length - 1) [state.stops[i + 1], state.stops[i]] = [state.stops[i], state.stops[i + 1]];
       else if (act === "addtop") {
@@ -5642,13 +5701,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
         if (t.value && t.value !== "custom") toast(`${state.hotels[cid].n} chosen. Press “Build / update my itinerary” to re-plan ${c.name} from it.`);
         return;
       }
-      if (t.dataset.act === "ownll") {
-        const i = +t.dataset.i, cid = state.stops[i].city, ll = parseLL(t.value), name = ($("#ownname-" + i).value || "").trim();
-        if (!ll) { const m = $("#ownmsg-" + i); if (m) m.textContent = "That doesn't look like a Google Maps link or coordinates (e.g. 51.5081, -0.0972). Short maps.app.goo.gl links can't be read — long-press the pin and copy the coordinates."; return; }
-        if (km(CITIES[cid].stay.ll, ll) > 80) { const m = $("#ownmsg-" + i); if (m) m.textContent = `That's ${Math.round(km(CITIES[cid].stay.ll, ll))} km from ${CITIES[cid].name} — please check it.`; return; }
-        ownFound[cid] = Object.assign(ownFound[cid] || {}, { n: name || "My place", query: name, ll, src: "your map link", msg: "" });
-        renderStops(); return;
-      }
+      if (t.id && /^ownname-\d+$/.test(t.id)) { ownFound[state.stops[+t.id.split("-")[1]].city] = t.value; return; }
       if (t.dataset.act === "hotelname") { const cid = state.stops[+t.dataset.i].city, h = state.hotels[cid]; if (h) { if (h.n !== t.value.trim()) h.ll = null; h.n = t.value.trim(); persist(); setHotelMsg(+t.dataset.i, "Now tap Find on map, or paste a Google Maps link."); } return; }
       if (t.dataset.act === "hotelll") {
         const i = +t.dataset.i, cid = state.stops[i].city, h = state.hotels[cid] || (state.hotels[cid] = { pick: "custom" });
@@ -5682,7 +5735,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     $("#planner").addEventListener("keydown", (e) => {
       if (e.key !== "Enter" || !e.target.id) return;
       const m = e.target.id.match(/^(ownname|hotelname)-(\d+)$/);
-      if (m) { e.preventDefault(); if (m[1] === "ownname") lookUpPlace(+m[2]); else findHotel(+m[2]); }
+      if (m) { e.preventDefault(); if (m[1] === "ownname") addIdea(+m[2]); else findHotel(+m[2]); }
     });
     $("#planner").addEventListener("submit", (e) => {
       e.preventDefault();
@@ -5891,14 +5944,14 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
         if (far) {
           // day trips out of town get their own travel blocks there and back
           const dep = r5(Math.max(t == null ? (s.part === "full" ? 7 * 60 + 30 : base - mins) : t + 5, s.part === "full" ? 7 * 60 + 30 : 0));
-          push({ k: "travel", icon: "🚐", title: "Travel to " + p.n.split(/[:(]/)[0].trim(), start: dep, end: dep + mins, note: firstSentence(p.x) });
+          push({ k: "travel", icon: p.dayCity ? "🚆" : "🚐", title: "Travel to " + p.n.replace(/^Day trip to /, "").split(/[:(]/)[0].trim(), start: dep, end: dep + mins, note: firstSentence(p.x) });
           t = dep + mins; mins = 0;
         }
         const start = r5(Math.max(base, (t == null ? base : t) + mins));
         const end = r5(start + durH * 60);
         if (s.insta) shot.add(s.insta.n);
         if (p.insta) shot.add(p.n);
-        push({ k: "sight", title: p.n, start, end, pid: p.id, ll: p.ll, note: far ? (s.part === "full" ? "Pack halal snacks and water — options can be limited out here." : "") : `${g.mode} ~${mins} min from the previous stop.`, why: s.why ? s.why[1] : "" });
+        push({ k: "sight", title: p.n, start, end, pid: p.id, ll: p.ll, note: far ? (p.dayCity && CITIES[p.dayCity] ? `Halal lunch: ${firstEatName(s.eat) || CITIES[p.dayCity].halalTip}` : s.part === "full" ? "Pack halal snacks and water — options can be limited out here." : "") : `${g.mode} ~${mins} min from the previous stop.`, why: s.why ? s.why[1] : "" });
         t = end;
         if (far) {
           const back = getThere(p, hotel, actCity).mins || mins;
@@ -5954,6 +6007,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     return items.sort((a, b) => a.start - b.start || a.end - b.end);
   }
 
+  const firstEatName = (eat) => (eat && eat.located && eat.located[0] ? eat.located[0].n : "");
   // The day's timeline: the traveller's edited version if there is one, else the suggestion
   function timelineFor(day, i) {
     const ed = state.edits && state.edits[dayKey(day, i)];
@@ -5983,7 +6037,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       const overlap = prevEnd != null && x.start < prevEnd - 1;
       const p = x.pid ? findPlace(city, x.pid) : null;
       const extra = p && !slotPids.has(p.id) ? `<div class="tl-more">${esc(firstSentence(p.d))} <span class="hint">${esc(p.h)} · ${esc(p.c)}${p.m ? " · Metro " + esc(p.m) : ""}</span>${mapLinks(p, city)}</div>` : "";
-      const hop = x.ll && prevLL && x.k !== "sight" ? (() => { const g = getThere({ ll: prevLL }, { ll: x.ll }, city); return g.mins ? ` <span class="hint">· ${esc(g.mode)} ~${g.mins} min</span>` : ""; })() : "";
+      const hop = x.ll && prevLL && x.k !== "sight" && x.k !== "travel" ? (() => { const g = getThere({ ll: prevLL }, { ll: x.ll }, city); return g.mins ? ` <span class="hint">· ${esc(g.mode)} ~${g.mins} min</span>` : ""; })() : "";
       prevEnd = Math.max(prevEnd || 0, x.end);
       if (x.ll) prevLL = x.ll;
       return pre + `<li class="tl-item k-${x.k}${overlap ? " overlap" : ""}"><span class="tl-time">${hhmm(x.start)}${x.end > x.start ? "–" + hhmm(x.end) : ""}</span><span class="tl-icon" aria-hidden="true">${x.icon || TL_ICON[x.k] || "•"}</span>

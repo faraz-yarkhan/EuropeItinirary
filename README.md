@@ -28,7 +28,7 @@ Plus pace, hotel budget, passport (Australian / other) and home airport (Sydney 
 - **Your hotel**: pick one of the three on each city card (or in the Hotels tab with “Choose this hotel”), or choose “Another hotel” and find yours by name on OpenStreetMap or paste a Google Maps link/coordinates. Press **Build / update my itinerary** and every direction, walking time, nearest halal meal, day map and the PDF are worked out from that hotel
 - **≈A$ next to every price** (euros, pounds, francs, kroner, złoty, forint…), using an editable rate (default €1 = A$1.64, mid-2026); other currencies convert via the euro
 - **Top picks** on every city card adds the highest-rated places you haven't chosen yet, plus 1–2 Instagram-worthy photo spots timed for their best light; every photo spot can also be picked from the city's “📸 Instagram spots” list
-- **Add my own place**: type any place's name and the planner looks it up (Wikipedia for a description and location, OpenStreetMap as a fallback, or paste a Google Maps link), then plans it like any other stop
+- **Add my own idea**: type it the way you'd say it — *“day trip to Florence”* (from Milan), *“Lake Como”*, *“sunset at the Duomo rooftop”*, *“Shakespeare's Globe”* — and press Add. The planner recognises its own cities (day trips get the best transport, travel time each way, highlights and a halal lunch there, with a warning if the day is too long), its own places and photo spots, timing words (morning, sunset, 2 hours, full day), pasted Google Maps links, and otherwise looks it up on Wikipedia/OpenStreetMap — then plans it with directions and halal food
 
 ## Files
 - `index.html` — page and styles
