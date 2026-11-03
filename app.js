@@ -1416,26 +1416,38 @@
   }
 
   // "At a glance": one row per day, built from each day's (possibly edited) timeline
-  function glanceHTML(plan) {
+  // One row per day for the At a glance table — interactive on screen, plain in the printout/PDF
+  function glanceRows(plan, print) {
     const show = { sight: 1, travel: 1, flight: 1, custom: 1, shop: 0, rest: 1, free: 1, prayer: 0, meal: 0, cafe: 0, photo: 0, breakfast: 0, hotel: 0 };
     const label = (x) => {
       if (x.k === "flight") return "✈ " + esc(x.title.replace(/^At the airport.*$/, "Airport"));
       if (x.k === "travel") return (x.icon || "→") + " " + esc(x.title.split(": ").pop());
       return esc(String(x.title).split(/[:(]/)[0].trim());
     };
-    const rows = plan.days.map((d, i) => {
+    return plan.days.map((d, i) => {
       const items = timelineFor(d, i).filter((x) => show[x.k] && !(x.k === "flight" && /^At the airport/.test(x.title)));
       const part = (lo, hi) => items.filter((x) => x.start >= lo && x.start < hi).map(label);
       const cont = (lo, hi) => items.filter((x) => x.start < lo && x.end > lo + 120 && x.k === "sight").map((x) => "↳ " + label(x));
       const cell = (arr) => (arr.length ? arr.join(" · ") : "—");
       const kind = KIND[d.kind] ? `<span class="kind-chip">${KIND[d.kind]}</span>` : "";
+      if (print) {
+        const h = hotelOf(d.cityId);
+        return `<tr><td><b>${i + 1}</b></td><td>${d.date ? fmtDate(d.date) : "—"}</td><td><b>${esc(d.city.name)}</b>${KIND[d.kind] ? `<br><i>${KIND[d.kind]}</i>` : ""}</td>
+          <td>${cell(part(0, 12 * 60 + 30))}</td><td>${cell(cont(12 * 60 + 30).concat(part(12 * 60 + 30, 18 * 60 + 30)))}</td><td>${cell(part(18 * 60 + 30, 24 * 60))}</td>
+          <td>${d.kind === "depart" ? "✈ Home" : h.chosen ? esc(h.n) : esc(d.city.name)}</td></tr>`;
+      }
       return `<tr data-goto="day-${i + 1}" tabindex="0" role="link" aria-label="Go to day ${i + 1}">
         <td class="g-day"><b>${i + 1}</b></td>
         <td class="g-date">${d.date ? fmtDate(d.date) : "—"}</td>
         <td><b>${esc(d.city.name)}</b> ${ctry(d.cityId).flag}${kind}${isEdited(d, i) ? '<span class="kind-chip edited">edited</span>' : ""}</td>
         <td>${cell(part(0, 12 * 60 + 30))}</td><td>${cell(cont(12 * 60 + 30).concat(part(12 * 60 + 30, 18 * 60 + 30)))}</td><td>${cell(part(18 * 60 + 30, 24 * 60))}</td>
-        <td class="g-sleep">${d.kind === "depart" ? "✈ Home" : esc(d.city.name)}</td></tr>`;
-    }).join("");
+        <td class="g-sleep">${d.kind === "depart" ? "✈ Home" : hotelOf(d.cityId).chosen ? esc(hotelOf(d.cityId).n) : esc(d.city.name)}</td></tr>`;
+    });
+  }
+  // Printed At a glance pages: 16 days a page, a short tail joins the previous page
+  function glancePageCount(n) { let c = Math.ceil(n / 16); if (c > 1 && n - (c - 1) * 16 < 4) c--; return c; }
+  function glanceHTML(plan) {
+    const rows = glanceRows(plan).join("");
     return `<section class="panel glance">
       <h3>At a glance</h3>
       ${state.start ? "" : `<p class="hint">Add a start date (step 4) to see the dates and weekdays here.</p>`}
@@ -1557,7 +1569,7 @@
       </div>
       ${state.aud !== false ? `<p class="hint">≈A$ amounts use €1 = A$${(+state.eurAud).toFixed(2)} (change it in the form's Extras). They're estimates — your card's rate and fees will differ slightly.</p>` : ""}
       <div class="notes">${notes.map(([k, t, h]) => `<div class="note ${k}"><b class="tag">${t}</b><span>${h}</span></div>`).join("")}</div>
-      <div class="actions"><button type="button" class="btn print-btn" data-print>🖨 Print itinerary & info (${plan.days.length + 5} pages)</button><button type="button" class="btn" data-pdf>📄 Download PDF</button><button type="button" class="btn" data-save>📲 Save to phone (offline copy)</button><button type="button" class="btn" id="copyPlan">Copy itinerary as text</button></div>
+      <div class="actions"><button type="button" class="btn print-btn" data-print>🖨 Print itinerary & info (${plan.days.length + 5 + glancePageCount(plan.days.length)} pages)</button><button type="button" class="btn" data-pdf>📄 Download PDF</button><button type="button" class="btn" data-save>📲 Save to phone (offline copy)</button><button type="button" class="btn" id="copyPlan">Copy itinerary as text</button></div>
     </div>`;
 
     const tabs = `<div class="tabs" role="tablist">
@@ -2347,13 +2359,20 @@
     const head = (t, sub) => `<div class="pv-head"><span>Europe Trip Planner</span><span>${esc(sub || "")}</span></div><h1>${t}</h1>`;
     const routeTxt = [fromSyd() ? "Sydney" : null, c.arrId !== c.ids[0] ? CITIES[c.arrId].name : null].filter(Boolean).concat(state.stops.map((s) => `${CITIES[s.city].name} (${s.nights}N)`), [c.depId !== c.ids[c.ids.length - 1] ? CITIES[c.depId].name : null, fromSyd() ? "Sydney" : null].filter(Boolean)).join(" → ");
 
-    // 1. Overview
-    pages.push(`${head(`${state.days}-day trip`, c.startD ? fmtDate(c.startD) + " – " + fmtDate(c.endD) : "")}
-      <p class="pv-route">${esc(routeTxt)}</p>
-      <ul class="pv-notes">${c.notes.filter((n) => n[1] !== "Example").map(([, t, h]) => `<li><b>${t}:</b> ${plain(h)}</li>`).join("")}</ul>
-      <table class="pv-tbl"><thead><tr><th>Day</th><th>City</th><th>Plan</th></tr></thead><tbody>
-      ${plan.days.map((d, i) => `<tr><td>${i + 1}${d.date ? "<br>" + fmtDate(d.date) : ""}</td><td>${esc(d.city.name)}</td><td>${esc(dayTitle(d))}</td></tr>`).join("")}
-      </tbody></table>`);
+    // 1. Overview: the At a glance table (long trips continue on the next page), then the trip notes on their own page
+    const gRows = glanceRows(plan, true), PER = 16;
+    const gTable = (rows) => `<table class="pv-tbl pv-glance"><thead><tr><th>Day</th><th>Date</th><th>City</th><th>Morning</th><th>Afternoon</th><th>Evening</th><th>Sleep in</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
+    const chunks = [];
+    for (let k = 0; k < gRows.length; k += PER) chunks.push(gRows.slice(k, k + PER));
+    // avoid a lonely last page of one or two days
+    if (chunks.length > 1 && chunks[chunks.length - 1].length < 4) { const tail = chunks.pop(); chunks[chunks.length - 1] = chunks[chunks.length - 1].concat(tail); }
+    chunks.forEach((rows, k) => pages.push(k === 0
+      ? `${head(`${state.days}-day trip · at a glance`, c.startD ? fmtDate(c.startD) + " – " + fmtDate(c.endD) : "")}
+        <p class="pv-route">${esc(routeTxt)}</p>
+        ${gTable(rows)}`
+      : `${head("At a glance (continued)", c.startD ? fmtDate(c.startD) + " – " + fmtDate(c.endD) : "")}${gTable(rows)}`));
+    pages.push(`${head("Trip notes")}
+      <ul class="pv-notes">${c.notes.filter((n) => n[1] !== "Example").map(([, t, h]) => `<li><b>${t}:</b> ${plain(h)}</li>`).join("")}</ul>`);
 
     // 1b. Route map
     pages.push(`${head("Route map")}<div class="pv-map">${plan.map.svg}</div><div class="map-legend">${plan.map.legend}</div>
