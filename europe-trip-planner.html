@@ -751,6 +751,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .label .step { font-family: var(--mono); color: var(--seal); letter-spacing: 0; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .row > * { min-width: 0; }
+textarea { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; width: 100%; resize: vertical; min-height: 70px; }
 input[type=number], input[type=date], input[type=text], select {
   background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; min-height: 40px;
 }
@@ -900,6 +901,9 @@ body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 
 .hotel .tier { white-space: normal; overflow-wrap: anywhere; }
 .hotel .badge { white-space: normal; justify-self: start; line-height: 1.4; }
 .hotel .btn { justify-self: start; margin-top: 4px; }
+.ownplace { display: grid; gap: 6px; border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; background: var(--card); }
+.ownplace input[type=text] { flex: 1 1 180px; min-height: 36px; padding: 5px 8px; }
+.chip.own { border-style: dashed; }
 .quick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .quick .hint { flex-basis: 100%; }
 .nlist { display: grid; gap: 6px; }
@@ -1174,6 +1178,9 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
       <span class="label"><span class="step">5</span> Type of trip</span>
       <div class="types" id="types"></div>
       <input type="text" id="otherText" placeholder="Describe it, e.g. football stadiums, castles, beaches" aria-label="Other trip type" hidden>
+      <label class="hint" for="wishes"><b>Tell us what you do — or don't — want</b> (optional)</label>
+      <textarea id="wishes" rows="3" placeholder="e.g. I want historical buildings and great views, but not museums or long day trips"></textarea>
+      <p class="hint" id="wishesRead" aria-live="polite"></p>
     </div>
     <div class="field">
       <span class="label">Extras</span>
@@ -4713,6 +4720,20 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
 
   // Give every place a stable id; typical minutes from each city centre to its airport
   Object.entries(CITIES).forEach(([cid, c]) => { c.id = cid; c.places.forEach((p, i) => (p.id = cid + "-" + i)); });
+  // Best light → part of the day: sunrise/morning spots in the morning, sunset/blue-hour/night ones in the evening
+  const whenSlots = (w) => {
+    if (/any time/i.test(w)) return ["m", "e", "n"];
+    const out = [];
+    if (/sunrise|morning|opening|before|early/i.test(w)) out.push("m");
+    if (/sunset|blue hour|night|evening|dusk|after dark|white nights/i.test(w)) out.push("n");
+    if (!out.length || /afternoon|golden hour|midday|noon/i.test(w)) out.push("e");
+    return out;
+  };
+  Object.entries(CITIES).forEach(([cid, c]) => (c.insta || []).forEach((x, k) => {
+    if (!x.ll || c.places.some((p) => !p.insta && km(p.ll, x.ll) < 0.3)) return;
+    c.places.push({ id: cid + "-ig" + k, insta: true, n: x.n, t: ["photo", "sightseeing"], s: whenSlots(x.when || ""), h: "45 min", c: "Usually free — check", ll: x.ll, r: 2,
+      d: x.note + (x.when ? " Best time: " + x.when.toLowerCase() + "." : ""), tip: "An Instagram-worthy spot — arrive at the best time for light and fewer people." });
+  }));
   const AIRPORT_MIN = {};
   Object.keys(CITIES).forEach((id) => (AIRPORT_MIN[id] = CITIES[id].apMin || 45));
   const ctry = (id) => COUNTRIES[CITIES[id].country];
@@ -4735,6 +4756,8 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
   state.stops = (state.stops || []).filter((st) => CITIES[st.city]);
   state.countries = (state.countries || []).filter((c) => COUNTRIES[c]);
   state.hotels = state.hotels || {};
+  state.custom = state.custom || {};
+  syncCustomPlaces();
   if (!(+state.eurAud > 0)) state.eurAud = FX.eurAud;
   if (state.arrive && !CITIES[state.arrive]) state.arrive = "";
   if (state.depart && !CITIES[state.depart]) state.depart = "";
@@ -4745,6 +4768,10 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
   function load(k) { try { const v = localStorage.getItem(STORE + ":" + k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
   function save(k, v) { try { localStorage.setItem(STORE + ":" + k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
   // The trip length follows the nights: nights in every city + 1 (the day you fly home)
+  // Merge the traveller's own places into each city's list (they carry custom: true)
+  function syncCustomPlaces() {
+    Object.keys(CITIES).forEach((cid) => { const c = CITIES[cid]; c.places = c.places.filter((p) => !p.custom).concat((state.custom && state.custom[cid]) || []); });
+  }
   function syncDays() { state.days = Math.max(2, state.stops.reduce((a, st) => a + (+st.nights || 0), 0) + 1); }
 
   /* ---------- geometry ---------- */
@@ -4896,6 +4923,70 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
   }
 
   /* ---------- itinerary engine ---------- */
+  /* ---------- "Tell us what you do or don't want": free text → things to favour and to leave out ---------- */
+  // label · what the traveller might write · how to recognise matching places
+  const nm = (p) => (p.n + " " + (p.loc || "")).toLowerCase();
+  const all = (p) => (p.n + " " + (p.loc || "") + " " + p.d + " " + p.t.join(" ")).toLowerCase();
+  const CONCEPTS = [
+    { id: "museums", label: "museums & galleries", user: /museum|galler(y|ies)|exhibition/, test: (p) => /museum|museo|musée|gallery|galleria|galerie|louvre|prado|uffizi|hermitage|rijks|orsay|accademia|tretyakov|kunsthistorisches|chester beatty|polin|vasa|munch|belvedere|borghese|van gogh/.test(nm(p)) },
+    { id: "art", label: "art", user: /\bart\b|arts\b|paint|artist|sculpt/, test: (p) => /museum|gallery|galleria|louvre|uffizi|orsay|prado|belvedere|munch|borghese|van gogh|accademia|sculpture|magritte|matisse/.test(nm(p)) },
+    { id: "historic", label: "historical buildings & landmarks", user: /histor|heritage|old buildings?|architect|landmark|monument|medieval|old towns?/, test: (p) => p.t.includes("history") && !/museum|gallery/.test(nm(p)) || /castle|palace|cathedral|basilica|church|mosque|fortress|abbey|monastery|citadel|old town|bridge|alhambra|alcázar|kremlin|parliament|gate|walls?\b|square/.test(nm(p)) },
+    { id: "castles", label: "castles & palaces", user: /castle|palace|royal|fortress|kings?\b|queens?\b|chateau|château/, test: (p) => /castle|palace|fortress|citadel|kremlin|alcázar|alhambra|residenz|hofburg|schönbrunn|versailles|wawel|château|neuschwanstein|bastion/.test(nm(p)) },
+    { id: "churches", label: "churches & cathedrals", user: /church|cathedral|basilica|chapel|religious sites?|christian/, test: (p) => /church|cathedral|basilica|chapel|abbey|monastery|duomo|notre-dame|sagrada|sacré|st peter|st mark|st stephen's cathedral|st vitus|kirche/.test(nm(p)) },
+    { id: "islamic", label: "mosques & Islamic heritage", user: /mosque|islam|muslim|ottoman|moorish|\bmoors?\b|andalus/, test: (p) => p.t.includes("islamic") || /mosque|mezquita|alhambra|bazaar/.test(nm(p)) },
+    { id: "ruins", label: "ancient ruins", user: /ancient|ruins?\b|roman|greek|archaeolog/, test: (p) => /ruins|forum|colosseum|acropolis|pompeii|agora|temple|akrotiri|diocletian|amphitheat|pantheon/.test(nm(p)) },
+    { id: "nature", label: "nature & scenery", user: /nature|outdoors?|mountains?|lakes?\b|waterfalls?|scenery|scenic|countryside|fjords?|national park|gardens?|parks?\b|green/, test: (p) => p.t.includes("nature") },
+    { id: "hiking", label: "hikes & long walks", user: /hik(e|es|ing)|trek|trails?|long walks?|walking tours?/, test: (p) => /hike|hiking|trail|path of|walk\b|cliff walk|caldera hike/.test(all(p)) },
+    { id: "climbs", label: "lots of stairs & climbs", user: /stairs|steps|climb(s|ing)?|steep|towers?\b/, test: (p) => /climb|steps|stairs|steep|\d{3,4} steps|fortress climb/.test(all(p)) },
+    { id: "beaches", label: "beaches & swimming", user: /beach|swim|seaside|coast|islands?\b/, test: (p) => /beach|lagoon|swim|island\b|islands|coast/.test(all(p)) },
+    { id: "views", label: "views & viewpoints", user: /views?\b|panoram|rooftops?|lookouts?|skyline|sunsets?|viewpoints?/, test: (p) => /view|panoram|rooftop|lookout|summit|terrace|bastion|hill\b|tower|cable car|funicular|sunset/.test(all(p)) },
+    { id: "shopping", label: "shopping & markets", user: /shop|markets?\b|bazaars?|souvenir|malls?\b/, test: (p) => p.t.includes("shopping") || /market|bazaar|strøget|quadrilatero/.test(nm(p)) },
+    { id: "food", label: "food & markets", user: /food|eating|cuisine|foodie|dessert/, test: (p) => p.t.includes("food") },
+    { id: "shows", label: "shows & concerts", user: /\bshows?\b|concerts?|theat(re|er)|opera|music|flamenco|musical/, test: (p) => /show|concert|theatre|opera|flamenco|musical|west end|tablao/.test(all(p)) },
+    { id: "themeparks", label: "theme parks", user: /theme parks?|amusement|disney|rides\b|roller ?coaster/, test: (p) => /disney|tivoli|prater|amusement|harry potter|studio tour/.test(nm(p) + " " + p.d.toLowerCase()) },
+    { id: "kids", label: "kid-friendly places", user: /\bkids?\b|children|child|toddler|family/, test: (p) => p.t.includes("family") },
+    { id: "daytrips", label: "long day trips out of town", user: /day ?trips?|excursions?|out of (the )?(town|city)|long (journeys?|drives?|trips?)|far away|travel(ling)? far/, test: (p) => !!p.x },
+    { id: "boats", label: "boat trips & cruises", user: /boats?\b|cruises?|ferr(y|ies)|river trips?|canals?|gondola|sailing/, test: (p) => /cruise|boat|gondola|canal tour|ferry|sailing/.test(all(p)) },
+    { id: "war", label: "war & dark history", user: /war history|dark history|military history|\bwars?\b|ww ?i?i|world war|holocaust|concentration|genocide|dark history|sad|depressing|grim/, test: (p) => /war\b|uprising|occupation|auschwitz|holocaust|memorial|bunker|kgb|siege|topography of terror|gaol|checkpoint|bunk'art/.test(all(p)) },
+    { id: "adventure", label: "adventure & thrills", user: /adventure|adrenaline|thrill|paraglid|zip ?line|extreme|bungee/, test: (p) => p.t.includes("adventure") },
+    { id: "animals", label: "zoos, aquariums & wildlife", user: /\bzoos?\b|aquarium|animals?|wildlife|whales?/, test: (p) => /zoo|aquarium|oceanário|whale|bear|animals|skansen/.test(all(p)) },
+    { id: "photo", label: "photo spots", user: /photo|instagram|pictures/, test: (p) => p.t.includes("photo") },
+    { id: "spa", label: "spas & thermal baths", user: /\bspas?\b|thermal|baths?\b|hammam|sauna|lagoon/, test: (p) => /bath|spa\b|hammam|sauna|lagoon/.test(all(p)) },
+  ];
+  // Most specific phrases first, removed once matched ("war history" isn't "historical buildings", "theme parks" isn't "parks")
+  const WISH_ORDER = ["war", "themeparks", "daytrips", "boats", "spa", "animals", "islamic", "castles", "churches", "ruins", "museums"].map((id) => CONCEPTS.find((c) => c.id === id))
+    .concat(CONCEPTS.filter((c) => ["war", "themeparks", "daytrips", "boats", "spa", "animals", "islamic", "castles", "churches", "ruins", "museums"].indexOf(c.id) < 0));
+  const NEG = /\b(no|not|don'?t|dont|do not|doesn'?t|avoid|skip|without|hate|dislike|less|fewer|never|nothing|exclude|rather not|not into|not a fan|isn'?t|aren'?t|can'?t stand|no more)\b/;
+  const MOBILITY = /mobility|wheelchair|knees?|bad (back|hip|legs?)|elderly|pram|stroller|can'?t walk|cannot walk|limited walking/;
+  const WISH_STOP = new Set(["want", "wants", "would", "like", "love", "really", "visit", "visiting", "see", "seeing", "include", "including", "please", "trip", "more", "lots", "much", "very", "also", "with", "that", "this", "these", "those", "things", "stuff", "place", "places", "some", "any", "lot", "into", "enjoy", "prefer", "interested", "about", "much", "time", "spend", "just", "only", "maybe", "should", "could", "where", "there", "them", "they", "have", "being", "doing", "going", "plenty", "every", "other", "kind", "kinds", "type", "types", "fan", "fans", "big", "huge", "make", "sure", "able", "well", "good", "great", "nice", "fun", "something", "anything", "everything", "less", "fewer", "dont", "don't", "hate", "avoid", "skip", "without", "rather", "dislike", "never", "nothing", "exclude", "and", "the", "for", "not", "but", "building", "buildings", "site", "sites", "sight", "sights", "sightseeing", "attraction", "attractions", "spot", "spots", "activities", "activity", "experience", "experiences", "tour", "tours", "visits", "stops", "days", "mostly", "mainly", "especially", "definitely", "too", "really", "want", "wanna", "would", "love", "like", "likes", "loves", "kids", "mum", "mom", "dad", "wife", "husband", "parents", "mother", "father", "family", "long", "short", "trip", "trips", "journey", "journeys", "knee", "knees", "back", "legs", "walking", "elderly", "she", "he", "her", "his", "our", "their", "we're", "i'd", "i'm", "we'd", "lot"]);
+  // Split into clauses at "but", sentence ends and ", I…" — then everything after a negative word in a clause is unwanted
+  function parseWishes(text) {
+    const out = { inc: [], exc: [], incWords: [], excWords: [], mobility: false };
+    const t = String(text || "").toLowerCase().replace(/[’`]/g, "'").trim();
+    if (!t) return out;
+    if (MOBILITY.test(t)) { out.mobility = true; ["climbs", "hiking"].forEach((id) => out.exc.push(CONCEPTS.find((c) => c.id === id))); }
+    t.split(/[.;!?\n]|\bbut\b|\bhowever\b|\balthough\b|\bwhereas\b|\bexcept\b|,\s*(?=(?:i|we|and i|and we|please|also)\b)/).forEach((seg) => {
+      const m = seg.match(NEG);
+      const pos = m ? seg.slice(0, m.index) : seg, neg = m ? seg.slice(m.index + m[0].length) : "";
+      [[pos, out.inc, out.incWords], [neg, out.exc, out.excWords]].forEach(([part, list, words]) => {
+        let rest = part;
+        WISH_ORDER.forEach((c) => { if (c.user.test(rest)) { if (list.indexOf(c) < 0) list.push(c); rest = rest.replace(new RegExp("[a-zà-ž'-]*(?:" + c.user.source + ")[a-zà-ž'-]*", "g"), " "); } });
+        rest.split(/[^a-zà-ž]+/).filter((w) => w.length > 3 && !WISH_STOP.has(w)).forEach((w) => { if (words.indexOf(w) < 0) words.push(w); });
+      });
+    });
+    // something both wanted and unwanted (e.g. "no museums but art galleries") — the explicit "no" wins only for its own concept
+    out.inc = out.inc.filter((c) => out.exc.indexOf(c) < 0);
+    return out;
+  }
+  const wishExcluded = (p, w) => w.exc.some((c) => c.test(p)) || w.excWords.some((x) => all(p).indexOf(x) >= 0);
+  const wishLabels = (p, w) => w.inc.filter((c) => c.test(p)).map((c) => c.label).concat(w.incWords.filter((x) => all(p).indexOf(x) >= 0).map((x) => "“" + x + "”"));
+  function wishSummary(w) {
+    const bits = [];
+    if (w.inc.length || w.incWords.length) bits.push("more " + w.inc.map((c) => c.label).concat(w.incWords.map((x) => "“" + x + "”")).join(", "));
+    if (w.exc.length || w.excWords.length) bits.push("leaving out " + w.exc.map((c) => c.label).concat(w.excWords.map((x) => "“" + x + "”")).join(", "));
+    return bits.join("; ");
+  }
+
   function prefsFrom(s) {
     const types = new Set();
     s.types.forEach((t) => {
@@ -4904,7 +4995,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     });
     const stop = new Set(["with", "that", "this", "some", "like", "want", "have", "trip", "and", "the", "more", "lots", "very"]);
     const words = (s.other || "").toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 3 && !stop.has(w));
-    return { types, words, pace: s.pace, fullTotal: 0 };
+    return { types, words, wish: parseWishes(s.wishes), pace: s.pace, fullTotal: 0 };
   }
 
   function pick(ctx, slot, prev, o = {}) {
@@ -4912,6 +5003,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     const pool = city.places.filter((p) => {
       if (used.has(p.id)) return false;
       if (dow != null && p.cl && p.cl.includes(dow)) return false;
+      if (!sel.has(p.id) && wishExcluded(p, prefs.wish)) return false; // the traveller said they don't want this
       if (slot === "m") return p.s.includes("m") || (o.allowFull && p.s.includes("full"));
       return p.s.includes(slot);
     });
@@ -4925,6 +5017,8 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       }
       const dist = km(prev.ll, p.ll);
       sc -= Math.min(dist, 40) * (o.near ? 2.2 : 0.5);
+      sc += wishLabels(p, prefs.wish).length * 22;
+      if (p.insta && !chosen) sc -= 30; // photo spots fill gaps; they're planned for sure when you pick them
       if (p.s.includes("full") && !chosen && !match) sc -= 10;
       if (o.near && p.x) sc -= 30;
       return { p, sc };
@@ -4935,8 +5029,9 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
   function activity(ctx, part, p, alt, prev) {
     const city = ctx.city;
     const matched = TRIP_TYPES.filter((t) => (t.tags || [t.id]).some((x) => p.t.includes(x)) && ctx.prefs.types.has((t.tags || [t.id])[0])).map((t) => t.label);
-    const why = ctx.sel.has(p.id) ? ["pick", "Your pick"] : p.r === 3 ? ["top", "★ Top rated"] : matched.length ? ["rec", "Recommended · " + matched.slice(0, 2).join(", ")] : ["rec", "Recommended"];
-    const slot = { part, type: "act", p, alt, why, how: getThere(prev, p, city), insta: nearest(city.insta, p.ll, 1.5) };
+    const wl = wishLabels(p, ctx.prefs.wish);
+    const why = p.custom ? ["pick", "Your own place"] : p.insta && ctx.sel.has(p.id) ? ["pick", "📸 Your photo spot"] : p.insta ? ["rec", "📸 Instagram spot"] : ctx.sel.has(p.id) ? ["pick", "Your pick"] : wl.length ? ["top", "Matches your wishes · " + wl[0]] : p.r === 3 ? ["top", "★ Top rated"] : matched.length ? ["rec", "Recommended · " + matched.slice(0, 2).join(", ")] : ["rec", "Recommended"];
+    const slot = { part, type: "act", p, alt, why, how: getThere(prev, p, city), insta: p.insta ? null : nearest(city.insta, p.ll, 1.5) };
     if (part === "m" || part === "full") slot.eat = { label: part === "full" ? "Lunch (halal)" : "Lunch nearby (halal)", ...eatNear(city, p.ll) };
     if (part === "n") slot.eat = { label: "Dinner nearby (halal)", ...eatNear(city, p.ll) };
     return slot;
@@ -5196,6 +5291,8 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       `<label class="toggle"><input type="checkbox" id="type-other" value="other" ${state.other ? "checked" : ""}><span>Other…</span></label>`;
     $("#otherText").hidden = !state.other && !$("#type-other").checked;
     $("#otherText").value = state.other || "";
+    $("#wishes").value = state.wishes || "";
+    showWishes();
     document.querySelector(`input[name=pace][value=${state.pace}]`).checked = true;
     document.querySelector(`input[name=budget][value=${state.budget}]`).checked = true;
     $("#arriveSel").innerHTML = cityOptions("Same as my first city", true);
@@ -5231,10 +5328,12 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     if (!state.stops.length) { el.innerHTML = '<p class="hint">No cities yet. Tap a city above to add it.</p>'; renderNights(); renderOutLeg(); return; }
     el.innerHTML = state.stops.map((st, i) => {
       const c = CITIES[st.city];
-      const opts = c.places.filter((p) => !st.places.includes(p.id)).map((p) => `<option value="${p.id}">${esc(p.n)}${p.s.includes("full") ? " (full day)" : ""}${p.r === 3 ? " ★" : ""}</option>`).join("");
+      const avail = c.places.filter((p) => !st.places.includes(p.id));
+      const optOf = (p) => `<option value="${p.id}">${p.insta ? "📸 " : p.custom ? "✳️ " : ""}${esc(p.n)}${p.s.includes("full") ? " (full day)" : ""}${p.r === 3 ? " ★" : ""}</option>`;
+      const opts = `<optgroup label="Sights & activities">${avail.filter((p) => !p.insta).map(optOf).join("")}</optgroup>` + (avail.some((p) => p.insta) ? `<optgroup label="📸 Instagram spots">${avail.filter((p) => p.insta).map(optOf).join("")}</optgroup>` : "");
       const chips = st.places.map((id) => {
         const p = c.places.find((x) => x.id === id);
-        return p ? `<span class="chip">${esc(p.n)}<button type="button" data-act="unplace" data-i="${i}" data-id="${id}" aria-label="Remove ${esc(p.n)}">×</button></span>` : "";
+        return p ? `<span class="chip${p.custom ? " own" : ""}">${p.custom ? "✳️ " : p.insta ? "📸 " : ""}${esc(p.n)}<button type="button" data-act="unplace" data-i="${i}" data-id="${id}" aria-label="Remove ${esc(p.n)}">×</button></span>` : "";
       }).join("");
       return `<div class="stop" data-cur="${curOf(st.city)}">
         <div class="stop-head"><span class="num">${pad2(i + 1)}</span><strong>${esc(c.name)}</strong><span class="loc">${ctry(st.city).flag} ${st.nights}N</span>
@@ -5243,8 +5342,9 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
           <button type="button" class="icon-btn" data-act="remove" data-i="${i}" aria-label="Remove ${esc(c.name)}">✕</button></div>
         ${legRow(st, i)}
         ${hotelRow(st, i)}
-        <div class="row"><select id="place-${i}" data-act="place" data-i="${i}" aria-label="Add a place in ${esc(c.name)}"><option value="">Add a place to see…</option>${opts}</select></div>
-        ${chips ? `<div class="chips">${chips}<button type="button" class="btn small" data-act="addtop" data-i="${i}" title="Add the top-rated places you haven't picked yet">★ Add top picks</button></div>` : `<p class="hint suggest">No places chosen, so we'll plan the top-rated ones for your trip style, e.g. ${topPicks(st.city, 3).map((p) => esc(p.n.split(/[:(&]/)[0].trim())).join(", ")}. <button type="button" class="btn small" data-act="addtop" data-i="${i}">Add top picks</button></p>`}
+        <div class="row"><select id="place-${i}" data-act="place" data-i="${i}" aria-label="Add a place in ${esc(c.name)}"><option value="">Add a place to see…</option>${opts}</select>${ownOpen[st.city] ? "" : `<button type="button" class="btn small" data-act="ownopen" data-i="${i}">➕ Add my own place</button>`}</div>
+        ${ownOpen[st.city] ? ownPlaceForm(st, i) : ""}
+        ${chips ? `<div class="chips">${chips}<button type="button" class="btn small" data-act="addtop" data-i="${i}" title="Add the top-rated places you haven't picked yet">★ Add top picks</button></div>` : `<p class="hint suggest">No places chosen, so we'll plan the top-rated ones for your trip style, e.g. ${topPicks(st.city, 3).map((p) => esc(p.n.split(/[:(&]/)[0].trim())).join(", ")}${topInsta(st.city, 1).length ? `, plus the photo spot 📸 ${esc(topInsta(st.city, 1)[0].n.split(/[:(]/)[0].trim())}` : ""}. <button type="button" class="btn small" data-act="addtop" data-i="${i}">Add top picks</button></p>`}
       </div>`;
     }).join("");
     renderNights();
@@ -5268,6 +5368,85 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       <span class="pair"><label class="hint" for="legdep-${i}">leaves</label><input type="time" id="legdep-${i}" data-act="legdep" data-i="${i}" data-from="${fromId}" value="${esc(lt.dep || "")}"></span>
       <span class="pair"><label class="hint" for="legarr-${i}">arrives</label><input type="time" id="legarr-${i}" data-act="legarr" data-i="${i}" data-from="${fromId}" value="${esc(lt.arr || "")}"></span></div>`;
   }
+  /* ---------- "Add my own place": look it up on Wikipedia (description + location), else OpenStreetMap ---------- */
+  const ownOpen = {}, ownFound = {};
+  function ownPlaceForm(st, i) {
+    const c = CITIES[st.city], f = ownFound[st.city];
+    const far = f && f.ll && km(c.stay.ll, f.ll) > 15;
+    return `<div class="ownplace">
+      <b class="hint">Your own place in ${esc(c.name)}</b>
+      <div class="row"><input type="text" id="ownname-${i}" placeholder="Name, e.g. Shakespeare's Globe" value="${esc((f && f.query) || "")}" aria-label="Place name" autocomplete="off">
+        <button type="button" class="btn small" data-act="ownfind" data-i="${i}">🔎 Look it up</button></div>
+      <input type="text" id="ownll-${i}" data-act="ownll" data-i="${i}" placeholder="…or paste a Google Maps link or coordinates" aria-label="Google Maps link or coordinates" autocomplete="off">
+      <div class="hint" id="ownmsg-${i}">${f ? ownFoundHTML(f, c) : "We'll look it up on Wikipedia and OpenStreetMap, then plan it with directions and halal food nearby."}</div>
+      ${f && f.ll ? `<div class="row">
+        <label class="hint" for="ownslot-${i}">When</label><select id="ownslot-${i}" style="flex:1 1 120px"><option value="m">Morning</option><option value="e">Afternoon</option><option value="n">Evening</option><option value="full" ${far ? "selected" : ""}>Full day</option></select>
+        <label class="hint" for="ownh-${i}">Time</label><select id="ownh-${i}" style="flex:1 1 90px"><option>1 h</option><option selected>2 h</option><option>3 h</option><option value="4 h">Half day (4 h)</option><option ${far ? "selected" : ""}>Full day</option></select></div>
+        <div class="actions"><button type="button" class="btn small print-btn" data-act="ownadd" data-i="${i}">✓ Add to my places</button>` : `<div class="actions">`}
+        <button type="button" class="btn small" data-act="ownclose" data-i="${i}">Cancel</button></div>
+    </div>`;
+  }
+  function ownFoundHTML(f, c) {
+    if (!f.ll) return `${f.msg ? esc(f.msg) : ""}`;
+    return `📍 <b>${esc(f.n)}</b> — ${esc(fromCentre(c, f.ll))}${f.src ? ` · from ${esc(f.src)}` : ""}${f.url ? ` · <a href="${esc(f.url)}" target="_blank" rel="noopener">read more ↗</a>` : ""}${f.d ? `<br>${esc(firstSentence(f.d))}` : ""}`;
+  }
+  const getJSON = (url) => fetch(url, { headers: { Accept: "application/json" } }).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  function lookUpPlace(i) {
+    const st = state.stops[i], c = CITIES[st.city], cid = st.city;
+    const q = ($("#ownname-" + i).value || "").trim();
+    if (!q) { $("#ownname-" + i).focus(); return; }
+    const msg = (t) => { const m = $("#ownmsg-" + i); if (m) m.innerHTML = t; };
+    msg("Looking it up…");
+    const near = (ll) => ll && km(c.stay.ll, ll) < 80;
+    const cityName = c.name.replace(/ \(.*\)/, "");
+    // 1. Wikipedia: search, then the first article with coordinates near the city
+    getJSON("https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&origin=*&srlimit=5&srsearch=" + encodeURIComponent(q + " " + cityName))
+      .then((res) => {
+        const titles = ((res.query && res.query.search) || []).map((x) => x.title);
+        return titles.reduce((chain, title) => chain.then((found) => found || getJSON("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(title.replace(/ /g, "_")))
+          .then((sm) => (sm.coordinates && near([sm.coordinates.lat, sm.coordinates.lon]) ? { n: sm.title, d: sm.extract || "", ll: [sm.coordinates.lat, sm.coordinates.lon], url: sm.content_urls && sm.content_urls.desktop && sm.content_urls.desktop.page, src: "Wikipedia" } : null))
+          .catch(() => null)), Promise.resolve(null))
+          .then((found) => found || (titles[0] ? getJSON("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titles[0].replace(/ /g, "_"))).then((sm) => ({ d: sm.extract || "", url: sm.content_urls && sm.content_urls.desktop && sm.content_urls.desktop.page })).catch(() => ({})) : {}));
+      })
+      .catch(() => ({}))
+      // 2. No location yet? OpenStreetMap
+      .then((wp) => wp && wp.ll ? wp : getJSON("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=en&q=" + encodeURIComponent(q + ", " + cityName))
+        .then((list) => { const hit = (list || []).map((x) => ({ x, ll: [+x.lat, +x.lon] })).filter((o) => near(o.ll))[0]; return hit ? { n: q, d: (wp && wp.d) || "", url: wp && wp.url, ll: hit.ll, src: wp && wp.d ? "Wikipedia & OpenStreetMap" : "OpenStreetMap" } : { n: q, d: (wp && wp.d) || "", url: wp && wp.url }; })
+        .catch(() => ({ n: q, d: (wp && wp.d) || "", url: wp && wp.url })))
+      .then((f) => {
+        f.query = q; f.n = f.n || q;
+        if (!f.ll) f.msg = `Couldn't find “${q}” on the map near ${cityName}. Check the spelling, or paste its Google Maps link or coordinates below.`;
+        ownFound[cid] = f;
+        renderStops();
+      });
+  }
+  // Guess tags from the description so trip style and your wishes apply to it too
+  function guessTags(t) {
+    const x = String(t).toLowerCase(), out = ["sightseeing"];
+    if (/centur|built|histor|ancient|medieval|palace|castle|cathedral|church|fortress|ruins/.test(x)) out.push("history", "culture");
+    if (/museum|gallery|art\b|exhibit/.test(x)) out.push("culture");
+    if (/park|garden|lake|mountain|forest|beach|waterfall|nature/.test(x)) out.push("nature");
+    if (/mosque|islam|ottoman|moorish/.test(x)) out.push("islamic");
+    if (/market|shopping|bazaar|mall/.test(x)) out.push("shopping");
+    if (/view|panoram|tower|bridge|square/.test(x)) out.push("photo");
+    return out.filter((v, k, a) => a.indexOf(v) === k);
+  }
+  function addOwnPlace(i) {
+    const st = state.stops[i], cid = st.city, c = CITIES[cid], f = ownFound[cid];
+    if (!f || !f.ll) return;
+    const slot = $("#ownslot-" + i).value, h = $("#ownh-" + i).value, d = km(c.stay.ll, f.ll);
+    const p = { id: cid + "-u" + Date.now().toString(36), custom: true, n: f.n, d: f.d ? firstSentence(f.d) + (firstSentence(f.d) !== f.d ? " " + firstSentence(f.d.slice(firstSentence(f.d).length).trim()) : "") : "Your own addition.",
+      t: guessTags(f.n + " " + f.d), s: [slot], h, c: "Check the official website", ll: f.ll, r: 2, url: f.url,
+      tip: `Added by you${f.src ? " (looked up on " + f.src + ")" : ""} — check opening hours and tickets before you go.` };
+    if (d > 15) p.x = `About ${Math.round(d)} km from ${c.name} — check the best train or bus in Google Maps.`;
+    (state.custom[cid] = state.custom[cid] || []).push(p);
+    st.places.push(p.id);
+    syncCustomPlaces();
+    delete ownFound[cid]; ownOpen[cid] = false;
+    persist(); renderStops();
+    toast(`${p.n} added to ${c.name}. Press “Build / update my itinerary” to fit it into your days.`);
+  }
+
   // Which hotel you're staying in: one of our three picks, your own (found on the map), or not decided yet
   function hotelRow(st, i) {
     const c = CITIES[st.city], h = state.hotels[st.city] || {}, sel = h.pick || "";
@@ -5349,8 +5528,15 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
   }
 
   function topPicks(cid, n) {
-    const types = prefsFrom(state).types;
-    return CITIES[cid].places.slice().sort((a, b) => ((b.r || 1) * 9 + b.t.filter((t) => types.has(t)).length * 8) - ((a.r || 1) * 9 + a.t.filter((t) => types.has(t)).length * 8)).slice(0, n);
+    const pr = prefsFrom(state), types = pr.types;
+    const sc = (p) => (p.r || 1) * 9 + p.t.filter((t) => types.has(t)).length * 8 + wishLabels(p, pr.wish).length * 22;
+    return CITIES[cid].places.filter((p) => !p.insta && !wishExcluded(p, pr.wish)).sort((a, b) => sc(b) - sc(a)).slice(0, n);
+  }
+  // The best photo spots: sunset/golden-hour ones first (they fit evenings), then by trip-style match
+  function topInsta(cid, n) {
+    const pr = prefsFrom(state);
+    const sc = (p) => (p.s.includes("n") ? 3 : 0) + wishLabels(p, pr.wish).length * 2 + (pr.types.has("photo") ? 1 : 0);
+    return CITIES[cid].places.filter((p) => p.insta && !wishExcluded(p, pr.wish)).sort((a, b) => sc(b) - sc(a)).slice(0, n);
   }
 
   function persist() { syncDays(); save("form", state); isExample = false; }
@@ -5360,6 +5546,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     state.countries = Array.prototype.map.call(document.querySelectorAll("[data-country]:checked"), (x) => x.value);
     state.types = TRIP_TYPES.map((t) => t.id).filter((id) => $("#type-" + id).checked);
     state.other = $("#type-other").checked ? $("#otherText").value.trim() : "";
+    state.wishes = $("#wishes").value.trim();
     state.pace = document.querySelector("input[name=pace]:checked").value;
     state.budget = document.querySelector("input[name=budget]:checked").value;
     state.passport = document.querySelector("input[name=passport]:checked").value;
@@ -5371,6 +5558,14 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     state.eurAud = Math.max(0.3, Math.min(5, parseFloat($("#eurAud").value) || FX.eurAud));
     state.flights = { inTime: $("#inTime").value, inNo: $("#inNo").value.trim().toUpperCase(), outTime: $("#outTime").value, outNo: $("#outNo").value.trim().toUpperCase() };
     syncDays();
+  }
+
+  // Live read-back of what the planner understood from the free text
+  function showWishes() {
+    const el = $("#wishesRead"), w = parseWishes($("#wishes").value);
+    if (!el) return;
+    const sum = wishSummary(w);
+    el.innerHTML = sum ? `✓ Understood: <b>${esc(sum)}</b>${w.mobility ? " (fewer stairs and hikes, for easier walking)" : ""}. Places you pick yourself are always kept.` : "Examples: “Historical buildings and views, but no museums”, “Lots of nature, no long day trips”, “My mum has bad knees — avoid stairs”.";
   }
 
   function addCity(id) {
@@ -5396,17 +5591,26 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       if ((act === "up" || act === "down") && state.optimise && !state.keepOrder) { state.keepOrder = true; toast("Your city order is kept; transport is still recommended. Tick the box in step 4 again to re-sort the cities."); }
       if (act === "quick") { addCity(b.dataset.city); return; }
       if (act === "hotelfind") { findHotel(i); return; }
+      if (act === "ownopen") { ownOpen[state.stops[i].city] = true; renderStops(); const n = $("#ownname-" + i); if (n) n.focus(); return; }
+      if (act === "ownclose") { const cid = state.stops[i].city; ownOpen[cid] = false; delete ownFound[cid]; renderStops(); return; }
+      if (act === "ownfind") { lookUpPlace(i); return; }
+      if (act === "ownadd") { addOwnPlace(i); return; }
       if (act === "up" && i > 0) [state.stops[i - 1], state.stops[i]] = [state.stops[i], state.stops[i - 1]];
       else if (act === "down" && i < state.stops.length - 1) [state.stops[i + 1], state.stops[i]] = [state.stops[i], state.stops[i + 1]];
       else if (act === "addtop") {
         const st = state.stops[i];
-        const add = topPicks(st.city, Math.min(2 + st.nights, 5)).filter((p) => (!p.s.includes("full") || st.nights > 1) && !st.places.includes(p.id)).map((p) => p.id);
+        const add = topPicks(st.city, Math.min(2 + st.nights, 5)).concat(topInsta(st.city, st.nights >= 3 ? 2 : 1)).filter((p) => (!p.s.includes("full") || st.nights > 1) && !st.places.includes(p.id)).map((p) => p.id);
         if (!add.length) { toast(`All the top picks for ${CITIES[st.city].name} are already on your list.`); return; }
         st.places = st.places.concat(add);
-        toast(`Added ${add.length} top pick${add.length > 1 ? "s" : ""} in ${CITIES[st.city].name}.`);
+        const ig = add.filter((id) => /-ig\d+$/.test(id)).length;
+        toast(`Added ${add.length} top pick${add.length > 1 ? "s" : ""} in ${CITIES[st.city].name}${ig ? ` (including ${ig} Instagram spot${ig > 1 ? "s" : ""})` : ""}.`);
       }
       else if (act === "remove") state.stops.splice(i, 1);
-      else if (act === "unplace") state.stops[i].places = state.stops[i].places.filter((x) => x !== b.dataset.id);
+      else if (act === "unplace") {
+        const cid = state.stops[i].city;
+        state.stops[i].places = state.stops[i].places.filter((x) => x !== b.dataset.id);
+        if (state.custom[cid] && state.custom[cid].some((p) => p.id === b.dataset.id)) { state.custom[cid] = state.custom[cid].filter((p) => p.id !== b.dataset.id); syncCustomPlaces(); }
+      }
       else if (act === "nplus") state.stops[i].nights = Math.min(30, state.stops[i].nights + 1);
       else if (act === "nminus") state.stops[i].nights = Math.max(1, state.stops[i].nights - 1);
       else if (act === "recnights") { state.stops.forEach((st) => (st.nights = CITIES[st.city].nightsRec || 2)); toast("Nights set to our suggestion for each city."); }
@@ -5431,6 +5635,13 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
         persist(); renderStops();
         if (t.value && t.value !== "custom") toast(`${state.hotels[cid].n} chosen. Press “Build / update my itinerary” to re-plan ${c.name} from it.`);
         return;
+      }
+      if (t.dataset.act === "ownll") {
+        const i = +t.dataset.i, cid = state.stops[i].city, ll = parseLL(t.value), name = ($("#ownname-" + i).value || "").trim();
+        if (!ll) { const m = $("#ownmsg-" + i); if (m) m.textContent = "That doesn't look like a Google Maps link or coordinates (e.g. 51.5081, -0.0972). Short maps.app.goo.gl links can't be read — long-press the pin and copy the coordinates."; return; }
+        if (km(CITIES[cid].stay.ll, ll) > 80) { const m = $("#ownmsg-" + i); if (m) m.textContent = `That's ${Math.round(km(CITIES[cid].stay.ll, ll))} km from ${CITIES[cid].name} — please check it.`; return; }
+        ownFound[cid] = Object.assign(ownFound[cid] || {}, { n: name || "My place", query: name, ll, src: "your map link", msg: "" });
+        renderStops(); return;
       }
       if (t.dataset.act === "hotelname") { const cid = state.stops[+t.dataset.i].city, h = state.hotels[cid]; if (h) { if (h.n !== t.value.trim()) h.ll = null; h.n = t.value.trim(); persist(); setHotelMsg(+t.dataset.i, "Now tap Find on map, or paste a Google Maps link."); } return; }
       if (t.dataset.act === "hotelll") {
@@ -5461,6 +5672,12 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       if (t.id === "type-other") { $("#otherText").hidden = !t.checked; if (t.checked) $("#otherText").focus(); }
       readForm(); persist(); renderTally();
     });
+    $("#wishes").addEventListener("input", () => { showWishes(); state.wishes = $("#wishes").value.trim(); persist(); renderStops(); });
+    $("#planner").addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" || !e.target.id) return;
+      const m = e.target.id.match(/^(ownname|hotelname)-(\d+)$/);
+      if (m) { e.preventDefault(); if (m[1] === "ownname") lookUpPlace(+m[2]); else findHotel(+m[2]); }
+    });
     $("#planner").addEventListener("submit", (e) => {
       e.preventDefault();
       readForm();
@@ -5478,7 +5695,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
   function fmtDate(d) { return d ? d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : ""; }
   function mapLinks(p, city) {
     const q = encodeURIComponent(p.n.split(/[:(&]/)[0].trim() + " " + city.name);
-    return `<div class="maplinks"><a href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">Google Maps ↗</a><a href="https://maps.apple.com/?q=${q}&sll=${p.ll[0]},${p.ll[1]}" target="_blank" rel="noopener">Apple Maps ↗</a></div>`;
+    return `<div class="maplinks">${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">About this place ↗</a>` : ""}<a href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">Google Maps ↗</a><a href="https://maps.apple.com/?q=${q}&sll=${p.ll[0]},${p.ll[1]}" target="_blank" rel="noopener">Apple Maps ↗</a></div>`;
   }
 
   function eatHTML(eat) {
@@ -5674,6 +5891,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
         const start = r5(Math.max(base, (t == null ? base : t) + mins));
         const end = r5(start + durH * 60);
         if (s.insta) shot.add(s.insta.n);
+        if (p.insta) shot.add(p.n);
         push({ k: "sight", title: p.n, start, end, pid: p.id, ll: p.ll, note: far ? (s.part === "full" ? "Pack halal snacks and water — options can be limited out here." : "") : `${g.mode} ~${mins} min from the previous stop.`, why: s.why ? s.why[1] : "" });
         t = end;
         if (far) {
@@ -6008,6 +6226,16 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       const ed = plan.days.filter((d, i) => isEdited(d, i)).length;
       if (ed) notes.push(["info", "Your edits", `${ed} day${ed > 1 ? "s have" : " has"} your own changes, kept even if you rebuild. Use “Reset day” on a day to go back to the suggestion.`]);
     }
+    {
+      const w = parseWishes(state.wishes);
+      if (wishSummary(w)) {
+        const skipped = [];
+        state.stops.forEach((st) => CITIES[st.city].places.forEach((p) => { if (!st.places.includes(p.id) && wishExcluded(p, w) && p.r >= 2 && skipped.indexOf(p.n) < 0) skipped.push(p.n); }));
+        const keptAnyway = [];
+        state.stops.forEach((st) => st.places.forEach((id) => { const p = CITIES[st.city].places.find((x) => x.id === id); if (p && wishExcluded(p, w)) keptAnyway.push(p.n); }));
+        notes.push(["good", "Your wishes", `Planned with ${esc(wishSummary(w))}.${skipped.length ? ` Left out: ${esc(skipped.slice(0, 8).join(", "))}${skipped.length > 8 ? ` and ${skipped.length - 8} more` : ""}.` : ""}${keptAnyway.length ? ` Kept because you picked them: ${esc(keptAnyway.join(", "))}.` : ""} Activities that match are marked “Matches your wishes”.`]);
+      }
+    }
     notes.push(["good", "Halal", "Every activity lists the nearest halal food we know of, and each afternoon includes a café stop and a photo spot. 'Halal' isn't regulated the same way everywhere in Europe — ask the staff and look for a certificate, as owners change."]);
 
     const hdr = `<div class="summary">
@@ -6092,7 +6320,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
         <h4>Best area to stay</h4><p><b>${esc(c.stay.area)}.</b> ${esc(c.stay.why)}</p>
         <h4>Hotels — our three picks</h4><p class="hint">All three have consistently good guest reviews. Prices are typical for a double room per night and swing with season — check current reviews and rates before booking. Already booked something else? Choose “Another hotel” on the ${esc(c.name)} card in the form.</p><div class="hotels">${hotels}</div>
         <p class="hint">Book on Booking.com, Expedia or direct. Most European cities add a tourist tax per person per night (about €1–10), paid at the hotel. Older buildings often have no lift — ask if that matters.</p>
-        <h4>Top-rated things to do</h4><ul>${c.places.filter((p) => p.r >= 2).sort((a, b) => b.r - a.r).map((p) => `<li><b>${esc(p.n)}</b> <span style="color:var(--gold)">${"★".repeat(p.r)}</span> — ${esc(p.d.split(". ")[0].replace(/\.$/, ""))}. <span class="hint">${esc(p.h)} · ${esc(p.c)}</span></li>`).join("")}</ul>
+        <h4>Top-rated things to do</h4><ul>${c.places.filter((p) => p.r >= 2 && !p.insta && !p.custom).sort((a, b) => b.r - a.r).map((p) => `<li><b>${esc(p.n)}</b> <span style="color:var(--gold)">${"★".repeat(p.r)}</span> — ${esc(p.d.split(". ")[0].replace(/\.$/, ""))}. <span class="hint">${esc(p.h)} · ${esc(p.c)}</span></li>`).join("")}</ul>
         <h4>Halal food</h4><ul>${halal}</ul><p>${esc(c.halalTip)}</p>
         ${mosques}
         <h4>☕ Cafés & desserts</h4><ul>${(c.cafes || []).map((x) => `<li><b>${esc(x.n)}</b> — ${esc(x.note)}</li>`).join("")}</ul>

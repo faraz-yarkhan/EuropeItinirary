@@ -751,6 +751,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .label .step { font-family: var(--mono); color: var(--seal); letter-spacing: 0; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .row > * { min-width: 0; }
+textarea { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; width: 100%; resize: vertical; min-height: 70px; }
 input[type=number], input[type=date], input[type=text], select {
   background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; min-height: 40px;
 }
@@ -900,6 +901,9 @@ body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 
 .hotel .tier { white-space: normal; overflow-wrap: anywhere; }
 .hotel .badge { white-space: normal; justify-self: start; line-height: 1.4; }
 .hotel .btn { justify-self: start; margin-top: 4px; }
+.ownplace { display: grid; gap: 6px; border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; background: var(--card); }
+.ownplace input[type=text] { flex: 1 1 180px; min-height: 36px; padding: 5px 8px; }
+.chip.own { border-style: dashed; }
 .quick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .quick .hint { flex-basis: 100%; }
 .nlist { display: grid; gap: 6px; }
@@ -1174,6 +1178,9 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
       <span class="label"><span class="step">5</span> Type of trip</span>
       <div class="types" id="types"></div>
       <input type="text" id="otherText" placeholder="Describe it, e.g. football stadiums, castles, beaches" aria-label="Other trip type" hidden>
+      <label class="hint" for="wishes"><b>Tell us what you do — or don't — want</b> (optional)</label>
+      <textarea id="wishes" rows="3" placeholder="e.g. I want historical buildings and great views, but not museums or long day trips"></textarea>
+      <p class="hint" id="wishesRead" aria-live="polite"></p>
     </div>
     <div class="field">
       <span class="label">Extras</span>

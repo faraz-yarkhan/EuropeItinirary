@@ -8,6 +8,7 @@ A single-page travel planner for 56 cities in 36 European countries — the comp
 3. **Nights in each city**, with our suggested number beside each (one tap applies them all); the trip length follows automatically
 4. **Dates & flights**: optional start date, arrival and departure cities, landing/take-off times and flight numbers, and how you'll travel between cities (train, flight, coach, hire car or ferry, with optional times) — or tick "Recommend the best city order and transport"
 5. **Trip style**: sightseeing, culture & history, food & cafés, Instagram & photography, nature, adventure, Islamic heritage, relaxing, shopping, family — or your own
+   - plus an optional free-text box — e.g. *“historical buildings and views, but no museums or long day trips”* or *“mum has bad knees, avoid stairs”*. The planner shows what it understood, favours matching places, leaves out what you don't want (except places you picked yourself) and lists what it left out
 
 Plus pace, hotel budget, passport (Australian / other) and home airport (Sydney / elsewhere).
 
@@ -26,7 +27,8 @@ Plus pace, hotel budget, passport (Australian / other) and home airport (Sydney 
 - **Hotels — three picks per city**: ★ Best pick, Recommended pick and Low budget pick, all chosen for consistently good reviews, with typical nightly prices and distance from the centre
 - **Your hotel**: pick one of the three on each city card (or in the Hotels tab with “Choose this hotel”), or choose “Another hotel” and find yours by name on OpenStreetMap or paste a Google Maps link/coordinates. Press **Build / update my itinerary** and every direction, walking time, nearest halal meal, day map and the PDF are worked out from that hotel
 - **≈A$ next to every price** (euros, pounds, francs, kroner, złoty, forint…), using an editable rate (default €1 = A$1.64, mid-2026); other currencies convert via the euro
-- **Top picks** on every city card adds the highest-rated places you haven't chosen yet
+- **Top picks** on every city card adds the highest-rated places you haven't chosen yet, plus 1–2 Instagram-worthy photo spots timed for their best light; every photo spot can also be picked from the city's “📸 Instagram spots” list
+- **Add my own place**: type any place's name and the planner looks it up (Wikipedia for a description and location, OpenStreetMap as a fallback, or paste a Google Maps link), then plans it like any other stop
 
 ## Files
 - `index.html` — page and styles
