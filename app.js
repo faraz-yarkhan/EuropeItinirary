@@ -23,7 +23,7 @@
   const STORE = "eu-trip-planner-v1";
 
   // Give every place a stable id; typical minutes from each city centre to its airport
-  Object.entries(CITIES).forEach(([cid, c]) => c.places.forEach((p, i) => (p.id = cid + "-" + i)));
+  Object.entries(CITIES).forEach(([cid, c]) => { c.id = cid; c.places.forEach((p, i) => (p.id = cid + "-" + i)); });
   const AIRPORT_MIN = {};
   Object.keys(CITIES).forEach((id) => (AIRPORT_MIN[id] = CITIES[id].apMin || 45));
   const ctry = (id) => COUNTRIES[CITIES[id].country];
@@ -31,7 +31,7 @@
   /* ---------- state ---------- */
   const DEFAULT = {
     start: "", pace: "balanced", budget: "mid", passport: "au", home: "syd", arrive: "par", depart: "rom", optimise: true, flights: {},
-    countries: ["fr", "ch", "it"],
+    countries: ["fr", "ch", "it"], hotels: {}, aud: true, eurAud: FX.eurAud,
     types: ["sightseeing", "culture", "food", "photo"], other: "",
     stops: [
       { city: "par", nights: 4, places: ["par-0", "par-1"] },
@@ -45,6 +45,8 @@
   let state = Object.assign(structuredCloneSafe(DEFAULT), saved || {});
   state.stops = (state.stops || []).filter((st) => CITIES[st.city]);
   state.countries = (state.countries || []).filter((c) => COUNTRIES[c]);
+  state.hotels = state.hotels || {};
+  if (!(+state.eurAud > 0)) state.eurAud = FX.eurAud;
   if (state.arrive && !CITIES[state.arrive]) state.arrive = "";
   if (state.depart && !CITIES[state.depart]) state.depart = "";
   let isExample = !saved;
@@ -66,9 +68,27 @@
   }
   const round5 = (n) => Math.round(n / 5) * 5;
 
-  function hotelPoint(city) {
-    return { n: "your hotel (" + city.stay.area + ")", ll: city.stay.ll, m: city.stay.m, hotel: true };
+  /* ---------- your hotel in each city ---------- */
+  const PICK_LABEL = { best: "★ Best pick", rec: "Recommended pick", budget: "Low budget pick", custom: "Your own hotel" };
+  const BUDGET_PICK = { lux: "best", mid: "rec", budget: "budget" };
+  function hotelOf(cid) {
+    const c = CITIES[cid], h = state.hotels && state.hotels[cid];
+    if (h && h.n && h.ll) return { n: h.n, ll: h.ll, area: h.area || c.stay.area, chosen: true, pick: h.pick };
+    return { n: null, ll: c.stay.ll, area: c.stay.area, chosen: false };
   }
+  const hotelLabel = (cid) => { const h = hotelOf(cid); return h.chosen ? h.n : "your hotel in " + CITIES[cid].stay.area; };
+  function hotelPoint(city) {
+    const h = hotelOf(city.id);
+    return { n: h.chosen ? h.n : "your hotel (" + city.stay.area + ")", ll: h.ll, m: h.chosen ? null : city.stay.m, hotel: true };
+  }
+  // "€120–220 a night", "CHF 260–420 a night", "2,000–3,300 Kč a night"
+  function priceText(city, h) {
+    const lo = money(city, h.price[0]), hi = money(city, h.price[1]);
+    const suffix = lo.indexOf(city.cur) !== 0;
+    return (suffix ? lo.replace(/\s\S+$/, "") + "–" + hi : lo + "–" + hi.slice(city.cur.length)) + " a night";
+  }
+  const curOf = (cid) => CUR_CODE[CITIES[cid].country] || "EUR";
+  const fromCentre = (city, ll) => { const d = km(city.stay.ll, ll); return d < 0.4 ? "in the centre" : d < 1.5 ? `${Math.round((d * 1.35 / 4.5) * 60)} min walk from the centre` : `${d.toFixed(1)} km from the centre`; };
 
   // Local-currency amount, rounded sensibly (Kč, Ft and KM go after the number)
   function money(city, n) {
@@ -150,6 +170,40 @@
     return dir === "in"
       ? `<b>From Sydney:</b> ${esc(f.text)} Arrive at ${esc(f.airport)}. Central Europe is 8–10 h behind Sydney (the UK and Portugal 9–11 h, Greece and Türkiye 7–9 h), so expect real jet lag: get outside in daylight and stay up until about 21:00 on day 1.`
       : `<b>Back to Sydney:</b> ${esc(f.text)} Fly out of ${esc(f.airport)}.`;
+  }
+
+  /* ---------- approximate AUD next to local prices ---------- */
+  const CUR_TOK = { "≈€": "EUR", "€": "EUR", "£": "GBP", CHF: "CHF", "Kč": "CZK", Ft: "HUF", "zł": "PLN", lei: "RON", din: "RSD", den: "MKD", KM: "BAM", "₽": "RUB", "₺": "TRY" };
+  const NUM = "(?:\\d{1,3}(?:,\\d{3})+|\\d+)(?:\\.\\d+)?";
+  const RNG = "(" + NUM + ")(?:\\s?[–-]\\s?(?:€|£)?(" + NUM + "))?";
+  const RE_PRE = new RegExp("(≈€|€|£|CHF|kr|KM|₽|₺)\\s?~?" + RNG + "(?![\\d.,]?\\d)(?!\\s?\\(≈A\\$)", "g");
+  const RE_POST = new RegExp(RNG + "\\s?(Kč|Ft|zł|lei|din|den|KM|₽|kr|L)(?![A-Za-zÀ-ž])(?!\\s?\\(≈A\\$)", "g");
+  const toAUD = (n, code) => (FX.perEur[code] ? (n / FX.perEur[code]) * (+state.eurAud || FX.eurAud) : null);
+  const fmtAUD = (v) => (v < 100 ? Math.max(1, Math.round(v)) : v < 1000 ? Math.round(v / 5) * 5 : v < 10000 ? Math.round(v / 10) * 10 : Math.round(v / 50) * 50).toLocaleString("en-US");
+  // "€25–30" → "€25–30 (≈A$40–50)". kr and L are only converted when the surrounding city says which currency they are.
+  function audText(t, ctx) {
+    const conv = (whole, tok, a, b) => {
+      const code = tok === "kr" ? (["DKK", "SEK", "NOK", "ISK"].indexOf(ctx) >= 0 ? ctx : null) : tok === "L" ? (ctx === "ALL" ? "ALL" : null) : CUR_TOK[tok];
+      const n1 = +a.replace(/,/g, ""), n2 = b ? +b.replace(/,/g, "") : null;
+      if (!code || (tok === "L" && n1 < 100)) return whole;
+      const x1 = toAUD(n1, code);
+      if (x1 == null) return whole;
+      return whole + " (≈A$" + fmtAUD(x1) + (n2 != null ? "–" + fmtAUD(toAUD(n2, code)) : "") + ")";
+    };
+    return String(t).replace(RE_PRE, (w, tok, a, b) => conv(w, tok, a, b)).replace(RE_POST, (w, a, b, tok) => conv(w, tok, a, b));
+  }
+  function audifyIn(root) {
+    if (!root || state.aud === false) return;
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+    const nodes = [];
+    while (w.nextNode()) nodes.push(w.currentNode);
+    nodes.forEach((n) => {
+      const v = n.nodeValue, p = n.parentNode;
+      if (!/\d/.test(v) || !p || !p.closest || p.closest("script, style, svg, .no-aud")) return;
+      const el = p.closest("[data-cur]");
+      const out = audText(v, el ? el.getAttribute("data-cur") : null);
+      if (out !== v) n.nodeValue = out;
+    });
   }
 
   /* ---------- itinerary engine ---------- */
@@ -383,7 +437,7 @@
       if (c) { ctx.used.add(c.id); day.slots.push(activity(ctx, "n", c, alt, prev)); prev = c; }
       else day.slots.push({ part: "n", type: "free", text: city.night[(ctx.fullCount + day.slots.length) % city.night.length], eat: { label: "Dinner (halal)", ...eatNear(city, prev.ll) } });
     } else {
-      day.slots.push({ part: "n", type: "free", late: true, when: "After check-in", text: "You arrive late: check in, grab a meal near the hotel and rest for tomorrow.", eat: { label: "Late meal near the hotel (halal)", ...eatNear(city, city.stay.ll) } });
+      day.slots.push({ part: "n", type: "free", late: true, when: "After check-in", text: "You arrive late: check in, grab a meal near the hotel and rest for tomorrow.", eat: { label: "Late meal near the hotel (halal)", ...eatNear(city, hotelOf(ctx.id).ll) } });
     }
     day.back = prev !== hotel ? getThere(prev, hotel, city) : null;
     return day;
@@ -460,6 +514,8 @@
     $("#arriveSel").value = state.arrive || "";
     $("#departSel").value = state.depart || "";
     $("#optimise").checked = !!state.optimise;
+    $("#audOn").checked = state.aud !== false;
+    $("#eurAud").value = state.eurAud;
     const fl = state.flights || {};
     $("#inTime").value = fl.inTime || ""; $("#inNo").value = fl.inNo || "";
     $("#outTime").value = fl.outTime || ""; $("#outNo").value = fl.outNo || "";
@@ -491,18 +547,20 @@
         const p = c.places.find((x) => x.id === id);
         return p ? `<span class="chip">${esc(p.n)}<button type="button" data-act="unplace" data-i="${i}" data-id="${id}" aria-label="Remove ${esc(p.n)}">×</button></span>` : "";
       }).join("");
-      return `<div class="stop">
+      return `<div class="stop" data-cur="${curOf(st.city)}">
         <div class="stop-head"><span class="num">${pad2(i + 1)}</span><strong>${esc(c.name)}</strong><span class="loc">${ctry(st.city).flag} ${st.nights}N</span>
           <button type="button" class="icon-btn" data-act="up" data-i="${i}" aria-label="Move ${esc(c.name)} earlier" ${i === 0 ? "disabled" : ""}>↑</button>
           <button type="button" class="icon-btn" data-act="down" data-i="${i}" aria-label="Move ${esc(c.name)} later" ${i === state.stops.length - 1 ? "disabled" : ""}>↓</button>
           <button type="button" class="icon-btn" data-act="remove" data-i="${i}" aria-label="Remove ${esc(c.name)}">✕</button></div>
         ${legRow(st, i)}
+        ${hotelRow(st, i)}
         <div class="row"><select id="place-${i}" data-act="place" data-i="${i}" aria-label="Add a place in ${esc(c.name)}"><option value="">Add a place to see…</option>${opts}</select></div>
         ${chips ? `<div class="chips">${chips}<button type="button" class="btn small" data-act="addtop" data-i="${i}" title="Add the top-rated places you haven't picked yet">★ Add top picks</button></div>` : `<p class="hint suggest">No places chosen, so we'll plan the top-rated ones for your trip style, e.g. ${topPicks(st.city, 3).map((p) => esc(p.n.split(/[:(&]/)[0].trim())).join(", ")}. <button type="button" class="btn small" data-act="addtop" data-i="${i}">Add top picks</button></p>`}
       </div>`;
     }).join("");
     renderNights();
     renderOutLeg();
+    audifyIn(el);
   }
 
   // How you get to this stop (from the previous stop, or from the arrival airport): mode + optional times
@@ -521,6 +579,48 @@
       <span class="pair"><label class="hint" for="legdep-${i}">leaves</label><input type="time" id="legdep-${i}" data-act="legdep" data-i="${i}" data-from="${fromId}" value="${esc(lt.dep || "")}"></span>
       <span class="pair"><label class="hint" for="legarr-${i}">arrives</label><input type="time" id="legarr-${i}" data-act="legarr" data-i="${i}" data-from="${fromId}" value="${esc(lt.arr || "")}"></span></div>`;
   }
+  // Which hotel you're staying in: one of our three picks, your own (found on the map), or not decided yet
+  function hotelRow(st, i) {
+    const c = CITIES[st.city], h = state.hotels[st.city] || {}, sel = h.pick || "";
+    return `<div class="row hotelrow"><label class="hint lbl" for="hotel-${i}">🏨 Your hotel in ${esc(c.name)}:</label>
+      <select id="hotel-${i}" data-act="hotel" data-i="${i}">
+        <option value="">Not booked yet — plan from ${esc(c.stay.area)}</option>
+        ${c.hotels.map((x) => `<option value="${x.tier}" ${sel === x.tier ? "selected" : ""}>${PICK_LABEL[x.tier]}: ${esc(x.n)} · ${esc(priceText(c, x))}</option>`).join("")}
+        <option value="custom" ${sel === "custom" ? "selected" : ""}>Another hotel (type its name)…</option>
+      </select>
+      ${sel === "custom" ? `<div class="custom-hotel">
+        <input type="text" id="hotelname-${i}" data-act="hotelname" data-i="${i}" placeholder="Hotel name, e.g. Hotel Lutetia" value="${esc(h.n || "")}" aria-label="Your hotel's name" autocomplete="off">
+        <button type="button" class="btn small" data-act="hotelfind" data-i="${i}">📍 Find on map</button>
+        <input type="text" id="hotelll-${i}" data-act="hotelll" data-i="${i}" placeholder="…or paste a Google Maps link or coordinates" aria-label="Google Maps link or coordinates" autocomplete="off">
+        <span class="hint" id="hotelmsg-${i}">${h.ll ? `📍 Found: ${esc(h.area || h.n)} — ${esc(fromCentre(c, h.ll))}.` : "Type the name and tap Find on map, or paste a Google Maps link (Share → Copy link) or coordinates."}</span></div>` : ""}
+    </div>`;
+  }
+  // "@48.85,2.29", "!3d48.85!4d2.29", "?q=48.85,2.29" or plain "48.85, 2.29"
+  function parseLL(t) {
+    const m = String(t).match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || String(t).match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+      String(t).match(/[?&](?:q|query|ll|destination)=(-?\d+\.\d+)(?:,|%2C)\s*(-?\d+\.\d+)/i) || String(t).match(/(-?\d{1,2}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/);
+    return m ? [+m[1], +m[2]] : null;
+  }
+  function setHotelMsg(i, html) { const m = $("#hotelmsg-" + i); if (m) m.innerHTML = html; }
+  // Look the hotel up on OpenStreetMap (Nominatim), keeping only results near the city
+  function findHotel(i) {
+    const st = state.stops[i], c = CITIES[st.city];
+    const name = ($("#hotelname-" + i).value || "").trim();
+    if (!name) { setHotelMsg(i, "Type your hotel's name first."); $("#hotelname-" + i).focus(); return; }
+    setHotelMsg(i, "Searching the map…");
+    const [la, lo] = c.stay.ll;
+    const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&accept-language=en&q=" + encodeURIComponent(name + ", " + (c.local || c.name).replace(/ \(.*\)/, "")) +
+      `&viewbox=${lo - 0.5},${la + 0.35},${lo + 0.5},${la - 0.35}`;
+    fetch(url, { headers: { Accept: "application/json" } }).then((r) => r.json()).then((list) => {
+      const near = (list || []).map((x) => ({ x, d: km(c.stay.ll, [+x.lat, +x.lon]) })).filter((o) => o.d < 45).sort((a, b) => a.d - b.d);
+      if (!near.length) { setHotelMsg(i, `Couldn't find “${esc(name)}” near ${esc(c.name)}. Check the spelling, add the street name, or paste a Google Maps link instead.`); return; }
+      const best = near.find((o) => /hotel|guest_house|hostel|apartment|motel|tourism/i.test(o.x.type + " " + o.x.category)) || near[0];
+      state.hotels[st.city] = { pick: "custom", n: name, ll: [+best.x.lat, +best.x.lon], area: best.x.display_name.split(",").slice(0, 3).join(",").trim() };
+      persist(); renderStops();
+      toast(`Found ${name}. Press “Build / update my itinerary” to re-plan ${c.name} from it.`);
+    }).catch(() => setHotelMsg(i, "The map search needs internet. You can paste a Google Maps link or coordinates instead."));
+  }
+
   // Last leg, when you fly home from a city that isn't your last stop
   function renderOutLeg() {
     const el = $("#outLegRow");
@@ -578,6 +678,8 @@
     state.arrive = $("#arriveSel").value;
     state.depart = $("#departSel").value;
     state.optimise = $("#optimise").checked;
+    state.aud = $("#audOn").checked;
+    state.eurAud = Math.max(0.3, Math.min(5, parseFloat($("#eurAud").value) || FX.eurAud));
     state.flights = { inTime: $("#inTime").value, inNo: $("#inNo").value.trim().toUpperCase(), outTime: $("#outTime").value, outNo: $("#outNo").value.trim().toUpperCase() };
     syncDays();
   }
@@ -604,6 +706,7 @@
       const i = +b.dataset.i, act = b.dataset.act;
       if ((act === "up" || act === "down") && state.optimise && !state.keepOrder) { state.keepOrder = true; toast("Your city order is kept; transport is still recommended. Tick the box in step 4 again to re-sort the cities."); }
       if (act === "quick") { addCity(b.dataset.city); return; }
+      if (act === "hotelfind") { findHotel(i); return; }
       if (act === "up" && i > 0) [state.stops[i - 1], state.stops[i]] = [state.stops[i], state.stops[i - 1]];
       else if (act === "down" && i < state.stops.length - 1) [state.stops[i + 1], state.stops[i]] = [state.stops[i], state.stops[i + 1]];
       else if (act === "addtop") {
@@ -631,6 +734,26 @@
         }
         persist(); renderStops(); return;
       }
+      if (t.dataset.act === "hotel") {
+        const cid = state.stops[+t.dataset.i].city, c = CITIES[cid], prev = state.hotels[cid] || {};
+        if (!t.value) delete state.hotels[cid];
+        else if (t.value === "custom") state.hotels[cid] = prev.pick === "custom" ? prev : { pick: "custom", n: "", ll: null };
+        else { const h = c.hotels.find((x) => x.tier === t.value); state.hotels[cid] = { pick: h.tier, n: h.n, ll: h.ll, area: h.area }; }
+        persist(); renderStops();
+        if (t.value && t.value !== "custom") toast(`${state.hotels[cid].n} chosen. Press “Build / update my itinerary” to re-plan ${c.name} from it.`);
+        return;
+      }
+      if (t.dataset.act === "hotelname") { const cid = state.stops[+t.dataset.i].city, h = state.hotels[cid]; if (h) { if (h.n !== t.value.trim()) h.ll = null; h.n = t.value.trim(); persist(); setHotelMsg(+t.dataset.i, "Now tap Find on map, or paste a Google Maps link."); } return; }
+      if (t.dataset.act === "hotelll") {
+        const i = +t.dataset.i, cid = state.stops[i].city, h = state.hotels[cid] || (state.hotels[cid] = { pick: "custom" });
+        const ll = parseLL(t.value);
+        if (!ll) { setHotelMsg(i, /goo\.gl|maps\.app/.test(t.value) ? "Short links can't be read. In Google Maps, long-press your hotel's pin and copy the coordinates shown at the top, then paste them here." : "That doesn't look like a Google Maps link or coordinates (e.g. 48.8510, 2.3430)."); return; }
+        if (km(CITIES[cid].stay.ll, ll) > 45) { setHotelMsg(i, `Those coordinates are ${Math.round(km(CITIES[cid].stay.ll, ll))} km from ${esc(CITIES[cid].name)} — please check them.`); return; }
+        h.ll = ll; h.n = h.n || ($("#hotelname-" + i).value || "").trim() || "My hotel"; h.area = "pinned location";
+        persist(); renderStops(); toast(`Location saved. Press “Build / update my itinerary” to re-plan ${CITIES[cid].name} from it.`);
+        return;
+      }
+      if (t.id === "audOn" || t.id === "eurAud") { readForm(); persist(); renderStops(); if (lastPlan) generate(false); return; }
       if (t.dataset.act === "place" && t.value) { state.stops[+t.dataset.i].places.push(t.value); persist(); renderStops(); return; }
       if (t.dataset.act === "legdep" || t.dataset.act === "legarr" || t.dataset.act === "legmode") {
         const st = state.stops[+t.dataset.i];
@@ -727,7 +850,7 @@
           ${s.ready != null && s.ready < 14 * 60 ? `<span class="timing">Hotel check-in is usually from 14:00. Ask for early check-in when you book, or leave your bags at reception and head out.</span>` : ""}`;
       body = s.via
         ? `<div class="travel"><b class="k">Land in ${esc(s.city.name)}</b>${timing}${fromSyd() ? `<span>${sydLine(s.flyIn, "in")}</span>` : ""}<span>${esc(s.text)}</span></div>`
-        : `<div class="travel"><b class="k">Arrive & check in</b>${timing}${fromSyd() ? `<span>${sydLine(s.flyIn, "in")}</span>` : ""}<span>${esc(s.text)}</span><span>Check in to your hotel in <b>${esc(city.stay.area)}</b>, rest, and check your eSIM and transport pass are working.</span></div>`;
+        : `<div class="travel"><b class="k">Arrive & check in</b>${timing}${fromSyd() ? `<span>${sydLine(s.flyIn, "in")}</span>` : ""}<span>${esc(s.text)}</span><span>Check in at <b>${esc(hotelLabel(day.cityId))}</b>, rest, and check your eSIM and transport pass are working.</span></div>`;
     } else if (s.type === "travel") {
       body = `<div class="travel"><b class="k">${s.toFlight ? "To your flight" : s.sameDay ? "Onward the same day" : "Travel day"} · ${esc(s.from.name)} → ${esc(s.to.name)}</b>
         ${s.dep != null ? `<span class="timing">${s.est ? `Estimated${s.leg && !s.leg.chosen ? " (assuming " + MODE[s.leg.rec].label.toLowerCase() + ")" : ""}: departs` : "Departs"} <b>${hhmm(s.dep)}</b>, arrives <b>${hhmm(s.arr)}</b>${s.est ? " — add your booked times in the form for an exact plan" : ""}.${s.leaveBy != null && !s.toFlight ? ` Leave the hotel by <b>${hhmm(s.leaveBy)}</b>.` : ""}</span>` : !s.toFlight ? `<span class="timing">No times entered — add your departure and arrival times on the ${esc(s.to.name)} card in the form for an exact plan.</span>` : ""}
@@ -742,8 +865,8 @@
           : `<span><b>How you'll travel isn't chosen yet.</b> Pick it on the ${esc(s.toFlight ? "“Fly home from” section" : s.to.name + " card")} in the form. Until then, timings assume the usual choice (${MODE[(s.leg || {}).rec || "train"].label.toLowerCase()}).</span>${legOptionsHTML(s.fromId, s.toId)}`}
         ${s.border ? `<span><b>Border crossing:</b> ${borderText(s.fromId, s.toId)}</span>` : s.newCountry ? `<span><b>New country:</b> welcome to ${esc(ctry(s.toId).name)} ${ctry(s.toId).flag}. There's no passport control inside the Schengen Area, but carry your passport — spot checks happen (Germany, for example, checks its land borders).${ctry(s.fromId).cur !== ctry(s.toId).cur ? ` Money changes to ${esc(ctry(s.toId).cur)}.` : ""}</span>` : ""}
         ${s.toFlight ? "" : `<span><b>On arrival:</b> ${esc(s.arrive)}</span>
-        <span>Check in to your hotel in <b>${esc(s.to.stay.area)}</b>.</span>`}</div>
-        ${s.toFlight || (s.arr != null && s.arr >= 16 * 60) ? "" : eatHTML({ label: s.sameDay || (s.arr != null && s.arr >= 14 * 60) ? "First meal on arrival (halal)" : "Lunch on arrival (halal)", ...eatNear(s.to, s.to.stay.ll) })}`;
+        <span>Check in at <b>${esc(hotelLabel(s.toId))}</b>.</span>`}</div>
+        ${s.toFlight || (s.arr != null && s.arr >= 16 * 60) ? "" : eatHTML({ label: s.sameDay || (s.arr != null && s.arr >= 14 * 60) ? "First meal on arrival (halal)" : "Lunch on arrival (halal)", ...eatNear(s.to, hotelOf(s.toId).ll) })}`;
     } else if (s.type === "depart") {
       const fl = s.flightNo ? `Flight <b>${esc(s.flightNo)}</b> ` : "Your flight ";
       const timing = s.off == null
@@ -819,7 +942,7 @@
       if (s.type === "arrive") {
         if (s.land != null) {
           push({ k: "flight", title: `${s.flightNo ? s.flightNo + " lands" : "Flight lands"} in ${s.city.name}`, start: s.land, end: s.land + IMMIGRATION, note: "Immigration, bags and customs." });
-          if (!s.via) { push({ k: "hotel", title: `To the hotel (${city.stay.area})`, start: s.land + IMMIGRATION, end: s.ready, note: s.ready < 14 * 60 ? "Check-in is usually from 14:00 — leave your bags at reception." : "Check in." }); t = s.ready; }
+          if (!s.via) { push({ k: "hotel", title: `To ${hotelLabel(day.cityId)}`, start: s.land + IMMIGRATION, end: s.ready, note: s.ready < 14 * 60 ? "Check-in is usually from 14:00 — leave your bags at reception." : "Check in." }); t = s.ready; }
           else t = s.land + IMMIGRATION;
         } else { push({ k: "hotel", title: "Arrive, check in and rest", start: 9 * 60, end: 12 * 60 + 30, note: "Add your landing time in step 2 to plan this exactly." }); t = 13 * 60 + 15; }
         return;
@@ -839,7 +962,7 @@
         const leave = s.leaveBy != null ? s.leaveBy : dep - e.lead;
         if (!s.sameDay && e.lead > 0) push({ k: "hotel", title: `Check out${s.collect ? " (collect your bags)" : ""} and go to the ${mode === "flight" ? "airport" : mode === "train" ? "station" : mode === "boat" ? "pier" : "pick-up point"}`, start: leave, end: dep });
         push({ k: "travel", icon: MODE[mode].icon, title: `${MODE[mode].label}: ${s.from.name} → ${s.to.name}`, start: dep, end: arr, note: s.dep == null || s.est ? "Estimated — add your booked times on the " + s.to.name + " card." : "" });
-        push({ k: "hotel", title: `Check in — ${s.to.stay.area}`, start: arr + 20, end: arr + 60 });
+        push({ k: "hotel", title: `Check in — ${hotelLabel(s.toId)}`, start: arr + 20, end: arr + 60 });
         t = arr + 60;
         return;
       }
@@ -999,12 +1122,12 @@
   // Redraw one day after an edit, plus everything that summarises it
   function refreshDay(i) {
     const el = document.getElementById("tl-" + i);
-    if (el) el.innerHTML = timelineHTML(i);
+    if (el) { el.innerHTML = timelineHTML(i); audifyIn(el); }
     const day = lastPlan.days[i];
     const pids = new Set(timelineFor(day, i).map((x) => x.pid).filter(Boolean));
     document.querySelectorAll(`#day-${i + 1} .slot[data-pid]`).forEach((sl) => (sl.hidden = !pids.has(sl.dataset.pid)));
     const g = $("#glanceBox");
-    if (g) g.innerHTML = glanceHTML(lastPlan);
+    if (g) { g.innerHTML = glanceHTML(lastPlan); audifyIn(g); }
     if (lastPrintArgs) buildPrintView(lastPlan, lastPrintArgs);
   }
 
@@ -1211,6 +1334,7 @@
         <div class="fact"><b>${b.day}</b><span>${b.label} / person / day, incl. hotel share${routeIds.some((i) => ["gb", "ch"].includes(CITIES[i].country)) ? " · London & Switzerland ~30% more" : ""}</span></div>
         <div class="fact"><b>${state.pace === "relaxed" ? "Relaxed" : "Balanced"}</b><span>Pace</span></div>
       </div>
+      ${state.aud !== false ? `<p class="hint">≈A$ amounts use €1 = A$${(+state.eurAud).toFixed(2)} (change it in the form's Extras). They're estimates — your card's rate and fees will differ slightly.</p>` : ""}
       <div class="notes">${notes.map(([k, t, h]) => `<div class="note ${k}"><b class="tag">${t}</b><span>${h}</span></div>`).join("")}</div>
       <div class="actions"><button type="button" class="btn print-btn" data-print>🖨 Print itinerary & info (${plan.days.length + 5} pages)</button><button type="button" class="btn" data-pdf>📄 Download PDF</button><button type="button" class="btn" data-save>📲 Save to phone (offline copy)</button><button type="button" class="btn" id="copyPlan">Copy itinerary as text</button></div>
     </div>`;
@@ -1225,12 +1349,12 @@
       if (day.kind !== "full" && day.kind !== "depart") {
         const st = state.stops[n];
         html += `<div class="city-band"><h3>${esc(day.city.name)}</h3><span class="loc">${ctry(day.cityId).flag} ${esc(ctry(day.cityId).name)}</span><span class="meta">${st ? st.nights + " night" + (st.nights > 1 ? "s" : "") : ""}</span></div>
-          <p class="city-stay">${esc(day.city.intro)} <b>Stay:</b> ${esc(day.city.stay.area)}. ${esc(day.city.stay.why)}</p>
+          <p class="city-stay">${esc(day.city.intro)} ${hotelOf(day.cityId).chosen ? `<b>🏨 Your hotel:</b> ${esc(hotelOf(day.cityId).n)} (${esc(fromCentre(day.city, hotelOf(day.cityId).ll))}) — all directions start from here.` : `<b>Stay:</b> ${esc(day.city.stay.area)}. ${esc(day.city.stay.why)} <b>Booked a hotel?</b> Choose it on the ${esc(day.city.name)} card or in the <a href="#" data-tab="stay">Hotels tab</a> and the plan is re-worked from it.`}</p>
           <p class="city-stay"><b>Top rated here:</b> ${day.city.places.filter((p) => p.r === 3).map((p) => plan.stops[n].used.has(p.id) ? `${esc(p.n)} <span style="color:var(--jade)">✓ in your plan</span>` : `${esc(p.n)} <i>(not in this plan — add a night)</i>`).join(" · ")}</p>
           <p class="city-stay"><b>☕ Cafés:</b> ${(day.city.cafes || []).map((c) => esc(c.n)).join(" · ")}<br><b>📸 Photo spots:</b> ${(day.city.insta || []).map((x) => `${esc(x.n)} <i>(${esc(x.when)})</i>`).join(" · ")}</p>`;
         n++;
       }
-      html += `<article class="day" id="day-${i + 1}">
+      html += `<article class="day" id="day-${i + 1}" data-cur="${curOf(day.cityId)}">
         <div class="day-num"><div class="stamp">${i + 1}</div><small>Day ${i + 1}${day.date ? "<br>" + fmtDate(day.date) : ""}</small></div>
         <div class="day-body"><h4 class="day-title">${esc(dayTitle(day))}${KIND[day.kind] ? `<span class="kind">${KIND[day.kind]}</span>` : ""}</h4>
           <div class="tl" id="tl-${i}">${timelineHTML(i)}</div>
@@ -1249,6 +1373,7 @@
        <div id="pane-prep" role="tabpanel" aria-labelledby="tab-prep" class="out" ${currentTab !== "prep" ? "hidden" : ""}><h2 class="print-only">Before you go</h2>${prepHTML(routeIds, zones)}</div>
        <div id="pane-talk" role="tabpanel" aria-labelledby="tab-talk" class="out" ${currentTab !== "talk" ? "hidden" : ""}><h2 class="print-only">Phrases</h2>${phrasesHTML(langs)}</div>
        <p class="foot">Prices, opening hours and visa rules change. Figures here are typical for 2025–26 and meant for planning; confirm bookings and entry rules on official sites before you travel. Directions are estimates from map distance — use Google Maps or Citymapper on the day for live routes.</p>`;
+    audifyIn(out);
     restoreChecks();
     plan.days.forEach((d, i) => { if (isEdited(d, i)) { const pids = new Set(timelineFor(d, i).map((x) => x.pid).filter(Boolean)); document.querySelectorAll(`#day-${i + 1} .slot[data-pid]`).forEach((sl) => (sl.hidden = !pids.has(sl.dataset.pid))); } });
     if (currentTab === "map") showStreetMap();
@@ -1261,15 +1386,22 @@
     const uniq = ids.filter((v, i, a) => a.indexOf(v) === i);
     return uniq.map((id) => {
       const c = CITIES[id], co = COUNTRIES[c.country];
-      const hotels = c.hotels.map((h) => `<div class="hotel ${h.tier === state.budget ? "pick" : ""}"><span class="tier">${TIER[h.tier]}${h.tier === state.budget ? " · your budget" : ""}</span><b>${esc(h.n)}</b><span>${esc(h.area)} — ${esc(h.note)}</span></div>`).join("");
+      const mine = hotelOf(id);
+      const hotels = c.hotels.map((h) => {
+        const isMine = mine.chosen && mine.n === h.n;
+        return `<div class="hotel ${isMine ? "pick" : ""}"><span class="tier">${PICK_LABEL[h.tier]}${h.tier === BUDGET_PICK[state.budget] ? " · matches your budget" : ""}</span><b>${esc(h.n)}</b>
+          <span>${esc(h.area)} · ${esc(fromCentre(c, h.ll))}</span><span class="price">${esc(priceText(c, h))}</span><span>${esc(h.note)}</span>
+          ${isMine ? '<span class="badge pick">✓ Your hotel — the plan starts from here</span>' : `<button type="button" class="btn small" data-choosehotel="${id}|${h.tier}">Choose this hotel</button>`}
+          <a class="hint" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.n + " " + c.name)}" target="_blank" rel="noopener">Reviews & map ↗</a></div>`;
+      }).join("") + (mine.chosen && mine.pick === "custom" ? `<div class="hotel pick"><span class="tier">Your own hotel</span><b>${esc(mine.n)}</b><span>${esc(fromCentre(c, mine.ll))}</span><span class="badge pick">✓ Your hotel — the plan starts from here</span></div>` : "");
       const halal = c.halal.map((h) => `<li><b>${esc(h.n)}</b> — ${esc(h.note)}</li>`).join("");
       const mosques = c.mosques.length ? `<h4>Mosques</h4><ul>${c.mosques.map((m) => `<li><b>${esc(m.n)}</b> — ${esc(m.note)}</li>`).join("")}</ul>` : `<h4>Mosques</h4><p>No mosque listed here; search “mosque” in Google Maps and use Muslim Pro for prayer times and qibla.</p>`;
-      return `<section class="panel">
+      return `<section class="panel" data-cur="${curOf(id)}">
         <h3>${esc(c.name)} <span class="loc">${co.flag} ${esc(co.name)}</span></h3>
         <p>${esc(c.intro)}</p>
         <p class="hint">We suggest <b>${c.nightsRec} night${c.nightsRec > 1 ? "s" : ""}</b> here. Money: ${esc(co.cur)}.</p>
         <h4>Best area to stay</h4><p><b>${esc(c.stay.area)}.</b> ${esc(c.stay.why)}</p>
-        <h4>Hotels</h4><div class="hotels">${hotels}</div>
+        <h4>Hotels — our three picks</h4><p class="hint">All three have consistently good guest reviews. Prices are typical for a double room per night and swing with season — check current reviews and rates before booking. Already booked something else? Choose “Another hotel” on the ${esc(c.name)} card in the form.</p><div class="hotels">${hotels}</div>
         <p class="hint">Book on Booking.com, Expedia or direct. Most European cities add a tourist tax per person per night (about €1–10), paid at the hotel. Older buildings often have no lift — ask if that matters.</p>
         <h4>Top-rated things to do</h4><ul>${c.places.filter((p) => p.r >= 2).sort((a, b) => b.r - a.r).map((p) => `<li><b>${esc(p.n)}</b> <span style="color:var(--gold)">${"★".repeat(p.r)}</span> — ${esc(p.d.split(". ")[0].replace(/\.$/, ""))}. <span class="hint">${esc(p.h)} · ${esc(p.c)}</span></li>`).join("")}</ul>
         <h4>Halal food</h4><ul>${halal}</ul><p>${esc(c.halalTip)}</p>
@@ -1852,7 +1984,7 @@
     return "https://www.google.com/maps/dir/" + pts.map(encodeURIComponent).join("/");
   }
   function googleDayLink(day) {
-    const hotel = day.city.stay.ll;
+    const hotel = hotelOf(day.cityId).ll;
     const pts = [hotel].concat(day.slots.filter((s) => s.type === "act").map((s) => s.p.ll), day.kind === "depart" ? [] : [hotel]);
     return pts.length > 1 ? "https://www.google.com/maps/dir/" + pts.map((ll) => ll[0] + "," + ll[1]).join("/") : "";
   }
@@ -1932,10 +2064,10 @@
       seq.forEach((p) => pin(CITIES[p.id].stay.ll, "#17202B", p.n ? String(p.n) : "✈", `${p.n ? p.n + ". " : ""}${esc(CITIES[p.id].name)}${p.nights ? " · " + p.nights + " nights" : " (airport)"}`, true));
     } else {
       const d = lastPlan.days[+which], color = DAY_COLORS[+which % DAY_COLORS.length];
-      const hotel = d.city.stay.ll;
+      const hotel = hotelOf(d.cityId).ll;
       const acts = d.slots.filter((s) => s.type === "act");
       L.polyline([hotel].concat(acts.map((s) => s.p.ll), d.kind === "depart" ? [] : [hotel]), { color, weight: 4, opacity: 0.8 }).addTo(lmapLayer);
-      pin(hotel, "#17202B", "H", `Hotel area: ${esc(d.city.stay.area)}`, true);
+      pin(hotel, "#17202B", "H", hotelOf(d.cityId).chosen ? `Your hotel: ${esc(hotelOf(d.cityId).n)}` : `Hotel area: ${esc(d.city.stay.area)}`, true);
       acts.forEach((s, k) => pin(s.p.ll, color, String(k + 1), `${SLOT[s.part].label}: ${esc(s.p.n)}`));
       if (d.slots.some((s) => s.type === "travel")) {
         const t = d.slots.find((s) => s.type === "travel");
@@ -1976,7 +2108,7 @@
         ${s.collect ? `<div>Collect bags from the hotel first.</div>` : ""}
         ${s.leg && s.leg.chosen ? `<div><b>${MODE[s.leg.chosen].label}:</b> ${esc(s.text)}</div>` : `<div><b>Mode not chosen.</b> Options: ${esc(modesFor(s.fromId, s.toId).map((m) => MODE[m].label + " ~" + dur(modeEstimate(m, s.fromId, s.toId).door) + ", " + modeEstimate(m, s.fromId, s.toId).cost).join(" · "))}</div>`}
         ${s.border ? `<div>Border crossing — passport ready.</div>` : s.newCountry ? `<div>New country: ${esc(ctry(s.toId).name)} — carry your passport.</div>` : ""}
-        ${s.toFlight ? "" : `<div><b>On arrival:</b> ${esc(firstSentence(s.arrive))} Check in at ${esc(s.to.stay.area)}.</div>`}`;
+        ${s.toFlight ? "" : `<div><b>On arrival:</b> ${esc(firstSentence(s.arrive))} Check in at ${esc(hotelLabel(s.toId))}.</div>`}`;
     } else if (s.type === "depart") {
       b = `<div class="pv-name">Departure</div>${s.off != null ? `<div><b>${s.flightNo ? esc(s.flightNo) + " takes off" : "Take-off"} ${hhmm(s.off)}</b> · at the airport by ${hhmm(s.off - INTL_BUFFER)}${s.leaveBy != null ? ` · leave hotel by ${hhmm(s.leaveBy)}` : ""}</div>` : ""}<div>${esc(s.text)}</div>${fromSyd() ? `<div>${plain(sydLine(s.flyOut, "out"))}</div>` : ""}`;
     } else if (s.type === "rest") {
@@ -2011,14 +2143,15 @@
     // 2. One page per day
     plan.days.forEach((d, i) => {
       const firstInCity = d.kind === "arrival" || d.kind === "transfer";
-      const hotel = d.city.hotels.find((h) => h.tier === state.budget) || d.city.hotels[0];
-      pages.push(`${head(`Day ${i + 1} · ${esc(d.city.name)} ${ctry(d.cityId).flag}`, (d.date ? fmtDate(d.date) + " · " : "") + (KIND[d.kind] || "Sightseeing"))}
+      const hotel = d.city.hotels.find((h) => h.tier === BUDGET_PICK[state.budget]) || d.city.hotels[0];
+      const mine = hotelOf(d.cityId);
+      pages.push(`<div data-cur="${curOf(d.cityId)}">${head(`Day ${i + 1} · ${esc(d.city.name)} ${ctry(d.cityId).flag}`, (d.date ? fmtDate(d.date) + " · " : "") + (KIND[d.kind] || "Sightseeing"))}
         <p class="pv-sub">${esc(dayTitle(d))}</p>
-        ${firstInCity ? `<p class="pv-stay"><b>Stay:</b> ${esc(d.city.stay.area)} — e.g. ${esc(hotel.n)}. <b>Halal near hotel:</b> ${esc(eatNear(d.city, d.city.stay.ll, 2).located.map((h) => h.n).join("; ") || d.city.halalTip)} <b>Cafés:</b> ${esc((d.city.cafes || []).slice(0, 3).map((c) => c.n).join("; "))}</p>` : ""}
+        ${firstInCity ? `<p class="pv-stay">${mine.chosen ? `<b>Your hotel:</b> ${esc(mine.n)}.` : `<b>Stay:</b> ${esc(d.city.stay.area)} — e.g. ${esc(hotel.n)}.`} <b>Halal near hotel:</b> ${esc(eatNear(d.city, mine.ll, 2).located.map((h) => h.n).join("; ") || d.city.halalTip)} <b>Cafés:</b> ${esc((d.city.cafes || []).slice(0, 3).map((c) => c.n).join("; "))}</p>` : ""}
         <table class="pv-tl"><tbody>${timelineFor(d, i).map((x) => `<tr class="k-${x.k}"><td class="pv-t">${hhmm(x.start)}${x.end > x.start ? "–" + hhmm(x.end) : ""}</td><td>${x.icon || TL_ICON[x.k] || ""} <b>${esc(x.title)}</b>${x.note ? ` <span class="pv-meta">— ${esc(x.note)}</span>` : ""}</td></tr>`).join("")}</tbody></table>
         <h2>Details & directions</h2>
         <table class="pv-day"><tbody>${d.slots.filter((s) => s.type !== "act" || !isEdited(d, i) || timelineFor(d, i).some((x) => x.pid === s.p.id)).map((s) => pvSlot(s, d)).join("")}</tbody></table>
-        ${d.back && d.kind !== "depart" ? `<p class="pv-meta"><b>Back to the hotel:</b> ${plain(d.back.text)}</p>` : ""}`);
+        ${d.back && d.kind !== "depart" ? `<p class="pv-meta"><b>Back to the hotel:</b> ${plain(d.back.text)}</p>` : ""}</div>`);
     });
 
     // 3. Key information
@@ -2026,9 +2159,9 @@
     const T = { lux: "Lux", mid: "Mid", budget: "Budget" };
     pages.push(`${head("Key information")}
       <div class="pv-cols">
-        ${uniq.map((id) => { const ct = CITIES[id]; return `<section><h2>${esc(ct.name)} ${ctry(id).flag}</h2>
-          <p><b>Stay:</b> ${esc(ct.stay.area)}</p>
-          <p><b>Hotels:</b> ${ct.hotels.map((h) => `${esc(h.n)} (${T[h.tier]})`).join("; ")}</p>
+        ${uniq.map((id) => { const ct = CITIES[id]; return `<section data-cur="${curOf(id)}"><h2>${esc(ct.name)} ${ctry(id).flag}</h2>
+          <p>${hotelOf(id).chosen ? `<b>Your hotel:</b> ${esc(hotelOf(id).n)}` : `<b>Stay:</b> ${esc(ct.stay.area)}`}</p>
+          <p><b>Hotel picks:</b> ${ct.hotels.map((h) => `${esc(h.n)} (${PICK_LABEL[h.tier].replace("★ ", "")}, ${esc(priceText(ct, h))})`).join("; ")}</p>
           <p><b>Halal:</b> ${ct.halal.map((h) => esc(h.n)).join("; ")}</p>
           ${ct.mosques.length ? `<p><b>Mosque:</b> ${ct.mosques.map((m) => esc(m.n)).join("; ")}</p>` : ""}
           <p><b>Cafés:</b> ${(ct.cafes || []).map((x) => esc(x.n)).join("; ")}</p>
@@ -2058,6 +2191,7 @@
       ${rows.length ? phraseTables(rows) : ""}`);
 
     pv.innerHTML = pages.map((p) => `<section class="pv-page">${p}</section>`).join("");
+    audifyIn(pv);
     fitPrintPages();
   }
 
@@ -2299,7 +2433,7 @@ ${pv}
       if (d.back && d.kind !== "depart") L.push(`  Back to hotel: ${strip(d.back.text)}`);
       L.push("");
     });
-    return L.join("\n");
+    return state.aud === false ? L.join("\n") : audText(L.join("\n"), null);
   }
 
   function copy(text, okMsg) {
@@ -2341,6 +2475,14 @@ ${pv}
         ["plan", "map", "stay", "prep", "talk"].forEach((id) => ($("#pane-" + id).hidden = id !== currentTab));
         if (currentTab === "map") showStreetMap();
         if (!tab.closest(".tabs")) $(".tabs").scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      const ch = e.target.closest("[data-choosehotel]");
+      if (ch) {
+        const [cid, tier] = ch.dataset.choosehotel.split("|"), h = CITIES[cid].hotels.find((x) => x.tier === tier);
+        state.hotels[cid] = { pick: h.tier, n: h.n, ll: h.ll, area: h.area };
+        persist(); renderStops(); generate(false);
+        toast(`Itinerary updated: ${CITIES[cid].name} now starts and ends each day at ${h.n}.`);
         return;
       }
       const go = e.target.closest("[data-goto]");

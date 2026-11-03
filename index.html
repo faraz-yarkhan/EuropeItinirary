@@ -889,6 +889,17 @@ body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 
 .photo .dist { font-family: var(--mono); font-size: 12px; color: var(--muted); }
 .areas { display: grid; gap: 10px; }
 .area { display: grid; gap: 5px; }
+.hotelrow { font-size: 13px; gap: 6px 10px; }
+.hotelrow .lbl { flex-basis: 100%; }
+.hotelrow select { flex: 1 1 100%; min-height: 36px; padding: 5px 8px; }
+.custom-hotel { display: flex; flex-wrap: wrap; gap: 6px; flex-basis: 100%; align-items: center; }
+.custom-hotel input[type=text] { flex: 1 1 180px; min-height: 36px; padding: 5px 8px; }
+.custom-hotel .hint { flex-basis: 100%; }
+.hotel .price { color: var(--ink); font-weight: 600; }
+.hotel { min-width: 0; }
+.hotel .tier { white-space: normal; overflow-wrap: anywhere; }
+.hotel .badge { white-space: normal; justify-self: start; line-height: 1.4; }
+.hotel .btn { justify-self: start; margin-top: 4px; }
 .quick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .quick .hint { flex-basis: 100%; }
 .nlist { display: grid; gap: 6px; }
@@ -1190,13 +1201,19 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
       <div class="row">
         <span class="hint" style="width:62px">Hotels</span>
         <div class="seg" role="radiogroup" aria-label="Hotel budget">
-          <label><input type="radio" name="budget" id="budBudget" value="budget"><span>Budget</span></label>
-          <label><input type="radio" name="budget" id="budMid" value="mid" checked><span>Mid-range</span></label>
-          <label><input type="radio" name="budget" id="budLux" value="lux"><span>Luxury</span></label>
+          <label><input type="radio" name="budget" id="budBudget" value="budget"><span>Low budget</span></label>
+          <label><input type="radio" name="budget" id="budMid" value="mid" checked><span>Recommended</span></label>
+          <label><input type="radio" name="budget" id="budLux" value="lux"><span>Best</span></label>
         </div>
       </div>
+      <div class="row">
+        <span class="hint" style="width:62px">A$</span>
+        <label class="check" for="audOn"><input type="checkbox" id="audOn" checked> <span>Show ≈A$ next to prices</span></label>
+        <span class="pair"><label class="hint" for="eurAud">€1 =&nbsp;A$</label><input type="number" id="eurAud" step="0.01" min="0.3" max="5" value="1.64" style="width:84px"></span>
+      </div>
+      <p class="hint">Exchange rate as of mid-2026 (other currencies convert via the euro). Update it to today's rate for better estimates.</p>
     </div>
-    <button type="submit" class="btn primary" id="go">Build my itinerary</button>
+    <button type="submit" class="btn primary" id="go">Build / update my itinerary</button>
     <button type="button" class="btn print-btn" data-print>🖨 Print itinerary & info</button>
     <button type="button" class="btn" data-pdf>📄 Download PDF</button>
     <button type="button" class="btn" data-save>📲 Save to phone (iPhone & Android)</button>
@@ -1225,6 +1242,7 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
 <script src="cities-southeast.js"></script>
 <script src="cities-north.js"></script>
 <script src="cities-east.js"></script>
+<script src="hotels.js"></script>
 <script src="routes.js"></script>
 <script src="map-data.js"></script>
 <script src="app.js"></script>
