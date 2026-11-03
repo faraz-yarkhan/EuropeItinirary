@@ -677,6 +677,10 @@ svg.leaflet-image-layer.leaflet-interactive path {
 
 </style>
 <style>
+/* Flag emojis: Windows has none, so flags come from the Twemoji Country Flags font (used only for flag characters) */
+@font-face { font-family: "Twemoji Country Flags"; font-display: swap;
+  unicode-range: U+1F1E6-1F1FF, U+1F3F4, U+E0062-E0063, U+E0065, U+E0067, U+E006C, U+E006E, U+E0073-E0074, U+E0077, U+E007F;
+  src: url("https://cdn.jsdelivr.net/npm/country-flag-emoji-polyfill@0.1.8/dist/TwemojiCountryFlags.woff2") format("woff2"); }
 /* Layout: planner form in a sticky left rail, the generated trip on the right, read like a rail timetable. */
 :root {
   --paper: #F3F4F2;
@@ -696,9 +700,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
   --land: #F7F6F2;
   --coast: #98A6B3;
   --mapborder: #B4BEC8;
-  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
-  --body: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --display: "Twemoji Country Flags", "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "Twemoji Country Flags", "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "Twemoji Country Flags", "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   --r: 10px;
   color-scheme: light;
 }
@@ -904,6 +908,7 @@ body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 
 .ownplace { display: grid; gap: 6px; border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; background: var(--card); }
 .ownplace input[type=text] { flex: 1 1 180px; min-height: 36px; padding: 5px 8px; }
 .chip.own { border-style: dashed; }
+.day-title .dflag { font-size: 0.95em; margin-right: 2px; }
 .quick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .quick .hint { flex-basis: 100%; }
 .nlist { display: grid; gap: 6px; }
@@ -1098,7 +1103,8 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
 .pv-glance td { font-size: 0.92em; line-height: 1.3; }
 .pv-glance td:nth-child(1) { width: 4%; }
 .pv-glance td:nth-child(2) { width: 9%; white-space: nowrap; }
-.pv-glance td:nth-child(3) { width: 11%; }
+.pv-glance td:nth-child(3) { width: 14%; }
+.pv-glance .nowrap { white-space: nowrap; }
 .pv-glance td:nth-child(7) { width: 12%; }
 .pv-glance tbody tr:nth-child(even) td { background: #f4f5f6; }
 .pv-day th { width: 23mm; text-align: left; vertical-align: top; padding: 5px 6px 5px 0; font-family: var(--mono); font-size: 0.85em; font-weight: 400; color: #555; text-transform: none; letter-spacing: 0; border-top: 1px solid #ccc; }
@@ -4810,6 +4816,8 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     return (suffix ? lo.replace(/\s\S+$/, "") + "–" + hi : lo + "–" + hi.slice(city.cur.length)) + " a night";
   }
   const curOf = (cid) => CUR_CODE[CITIES[cid].country] || "EUR";
+  const flagOf = (cid) => (CITIES[cid] ? COUNTRIES[CITIES[cid].country].flag : "");
+  const fname = (cid) => flagOf(cid) + " " + CITIES[cid].name; // "🇫🇷 Paris"
   const fromCentre = (city, ll) => { const d = km(city.stay.ll, ll); return d < 0.4 ? "in the centre" : d < 1.5 ? `${Math.round((d * 1.35 / 4.5) * 60)} min walk from the centre` : `${d.toFixed(1)} km from the centre`; };
 
   // Local-currency amount, rounded sensibly (Kč, Ft and KM go after the number)
@@ -5572,7 +5580,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     if (!state.stops.length) { el.innerHTML = '<p class="hint">Add cities in step 2 first.</p>'; renderTally(); return; }
     el.innerHTML = state.stops.map((st, i) => {
       const c = CITIES[st.city];
-      return `<div class="nrow"><span class="num">${pad2(i + 1)}</span><span class="nname"><b>${esc(c.name)}</b> <span class="hint">we suggest ${c.nightsRec}</span></span>
+      return `<div class="nrow"><span class="num">${pad2(i + 1)}</span><span class="nname"><b>${flagOf(st.city)} ${esc(c.name)}</b> <span class="hint">we suggest ${c.nightsRec}</span></span>
         <button type="button" class="icon-btn stepper" data-act="nminus" data-i="${i}" aria-label="One night fewer in ${esc(c.name)}" ${st.nights <= 1 ? "disabled" : ""}>−</button>
         <input type="number" id="nights-${i}" min="1" max="30" value="${st.nights}" data-act="nights" data-i="${i}" aria-label="Nights in ${esc(c.name)}">
         <button type="button" class="icon-btn stepper" data-act="nplus" data-i="${i}" aria-label="One more night in ${esc(c.name)}" ${st.nights >= 30 ? "disabled" : ""}>+</button></div>`;
@@ -5817,7 +5825,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
         ? `<div class="travel"><b class="k">Land in ${esc(s.city.name)}</b>${timing}${fromSyd() ? `<span>${sydLine(s.flyIn, "in")}</span>` : ""}<span>${esc(s.text)}</span></div>`
         : `<div class="travel"><b class="k">Arrive & check in</b>${timing}${fromSyd() ? `<span>${sydLine(s.flyIn, "in")}</span>` : ""}<span>${esc(s.text)}</span><span>Check in at <b>${esc(hotelLabel(day.cityId))}</b>, rest, and check your eSIM and transport pass are working.</span></div>`;
     } else if (s.type === "travel") {
-      body = `<div class="travel"><b class="k">${s.toFlight ? "To your flight" : s.sameDay ? "Onward the same day" : "Travel day"} · ${esc(s.from.name)} → ${esc(s.to.name)}</b>
+      body = `<div class="travel"><b class="k">${s.toFlight ? "To your flight" : s.sameDay ? "Onward the same day" : "Travel day"} · ${flagOf(s.fromId)} ${esc(s.from.name)} → ${flagOf(s.toId)} ${esc(s.to.name)}</b>
         ${s.dep != null ? `<span class="timing">${s.est ? `Estimated${s.leg && !s.leg.chosen ? " (assuming " + MODE[s.leg.rec].label.toLowerCase() + ")" : ""}: departs` : "Departs"} <b>${hhmm(s.dep)}</b>, arrives <b>${hhmm(s.arr)}</b>${s.est ? " — add your booked times in the form for an exact plan" : ""}.${s.leaveBy != null && !s.toFlight ? ` Leave the hotel by <b>${hhmm(s.leaveBy)}</b>.` : ""}</span>` : !s.toFlight ? `<span class="timing">No times entered — add your departure and arrival times on the ${esc(s.to.name)} card in the form for an exact plan.</span>` : ""}
         ${s.toFlight && s.leaveBy != null ? `<span class="timing">To make your flight home, leave ${esc(s.from.name)} by <b>${hhmm(s.leaveBy)}</b> (estimated door to door, with ${INTL_BUFFER / 60} h at the airport).</span>` : ""}
         ${s.collect ? `<span><b>Collect your bags first:</b> ${s.collect}</span>` : ""}
@@ -6188,7 +6196,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       const kind = KIND[d.kind] ? `<span class="kind-chip">${KIND[d.kind]}</span>` : "";
       if (print) {
         const h = hotelOf(d.cityId);
-        return `<tr><td><b>${i + 1}</b></td><td>${d.date ? fmtDate(d.date) : "—"}</td><td><b>${esc(d.city.name)}</b>${KIND[d.kind] ? `<br><i>${KIND[d.kind]}</i>` : ""}</td>
+        return `<tr><td><b>${i + 1}</b></td><td>${d.date ? fmtDate(d.date) : "—"}</td><td><b class="nowrap">${flagOf(d.cityId)} ${esc(d.city.name)}</b>${KIND[d.kind] ? `<br><i>${KIND[d.kind]}</i>` : ""}</td>
           <td>${cell(part(0, 12 * 60 + 30))}</td><td>${cell(cont(12 * 60 + 30).concat(part(12 * 60 + 30, 18 * 60 + 30)))}</td><td>${cell(part(18 * 60 + 30, 24 * 60))}</td>
           <td>${d.kind === "depart" ? "✈ Home" : h.chosen ? esc(h.n) : esc(d.city.name)}</td></tr>`;
       }
@@ -6248,16 +6256,16 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       const mainC = Object.keys(main).sort((a, b) => main[b] - main[a])[0];
       if (isAU()) notes.push(sch > 90
         ? ["warn", "Visa", `You'd spend about <b>${sch} days</b> in the Schengen Area — over the limit for Australians of <b>90 days in any 180</b>, counted across all Schengen countries together. Shorten the Schengen part, or move days to the UK, Türkiye or Bosnia & Herzegovina (outside Schengen).`]
-        : ["good", "Visa", `No visa needed: Australians can spend up to <b>90 days in any 180</b> in the Schengen Area (all Schengen countries combined) — this trip uses about ${sch}. On your first entry you'll be fingerprinted and photographed for the EU Entry/Exit System (fully live since April 2026). ETIAS, the online pre-travel approval, isn't running yet — it's now expected in 2027, so check before you fly.`]);
+        : ["good", "Visa", `🇪🇺 No visa needed: Australians can spend up to <b>90 days in any 180</b> in the Schengen Area (all Schengen countries combined) — this trip uses about ${sch}. On your first entry you'll be fingerprinted and photographed for the EU Entry/Exit System (fully live since April 2026). ETIAS, the online pre-travel approval, isn't running yet — it's now expected in 2027, so check before you fly.`]);
       else notes.push(["warn", "Visa", `Your route is mostly in the Schengen Area. If your passport needs a Schengen visa, apply to <b>${esc(COUNTRIES[mainC].name)}</b> (where you spend the most nights), up to 6 months and at least 15 days before travel; the fee is €90. Bring travel insurance with at least €30,000 medical cover, bookings and bank statements — this itinerary printout helps.`]);
     }
     if (zones.uk) notes.push(["info", "Visa", isAU()
-      ? "United Kingdom: Australians need an <b>Electronic Travel Authorisation (ETA)</b> before travelling — £20 (since April 2026) in the official UK ETA app, usually approved within 3 working days, valid for 2 years for stays of up to 6 months. Apply before you book non-refundable travel."
-      : "United Kingdom: visitors who don't need a visa (including EU citizens) need a UK ETA (£20) before travelling; everyone else needs a visa."]);
+      ? "🇬🇧 United Kingdom: Australians need an <b>Electronic Travel Authorisation (ETA)</b> before travelling — £20 (since April 2026) in the official UK ETA app, usually approved within 3 working days, valid for 2 years for stays of up to 6 months. Apply before you book non-refundable travel."
+      : "🇬🇧 United Kingdom: visitors who don't need a visa (including EU citizens) need a UK ETA (£20) before travelling; everyone else needs a visa."]);
     if (zones.tr) notes.push(["info", "Visa", isAU()
-      ? "Türkiye: Australians have been <b>visa-free since 17 April 2026</b> (up to 90 days in 180). Many older guides still say you need an e-Visa — confirm on Smartraveller before you fly."
-      : "Türkiye: many passports are visa-free; others need an e-Visa — apply only on the official site, evisa.gov.tr."]);
-    Object.keys(REGIONS).forEach((r) => { if (zones[r]) notes.push([r === "ru" ? "warn" : "info", "Visa", isAU() ? REGIONS[r].au : REGIONS[r].other]); });
+      ? "🇹🇷 Türkiye: Australians have been <b>visa-free since 17 April 2026</b> (up to 90 days in 180). Many older guides still say you need an e-Visa — confirm on Smartraveller before you fly."
+      : "🇹🇷 Türkiye: many passports are visa-free; others need an e-Visa — apply only on the official site, evisa.gov.tr."]);
+    Object.keys(REGIONS).forEach((r) => { if (zones[r]) notes.push([r === "ru" ? "warn" : "info", "Visa", (COUNTRIES[r] ? COUNTRIES[r].flag + " " : "") + (isAU() ? REGIONS[r].au : REGIONS[r].other)]); });
     if (fromSyd()) {
       const same = arrId === depId;
       notes.push(["info", "Flights", `Book ${same ? "a return" : "a <b>multi-city (open-jaw)</b>"} ticket: Sydney → ${esc(CITIES[arrId].name)}${same ? " and back" : `, then ${esc(CITIES[depId].name)} → Sydney`}. There are no nonstop flights to Europe until Qantas launches Sydney–London (announced for October 2027): expect one stop and 22–26 h. Emirates, Qatar Airways and Etihad serve halal meals on every flight. Details are on day 1 and the last day.`]);
@@ -6345,7 +6353,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       }
       html += `<article class="day" id="day-${i + 1}" data-cur="${curOf(day.cityId)}">
         <div class="day-num"><div class="stamp">${i + 1}</div><small>Day ${i + 1}${day.date ? "<br>" + fmtDate(day.date) : ""}</small></div>
-        <div class="day-body"><h4 class="day-title">${esc(dayTitle(day))}${KIND[day.kind] ? `<span class="kind">${KIND[day.kind]}</span>` : ""}</h4>
+        <div class="day-body"><h4 class="day-title"><span class="dflag">${flagOf(day.cityId)}</span> ${esc(dayTitle(day))}${KIND[day.kind] ? `<span class="kind">${KIND[day.kind]}</span>` : ""}</h4>
           <div class="tl" id="tl-${i}">${timelineHTML(i)}</div>
           <h5 class="details-h">Details, directions, halal food & photo spots</h5>
           ${day.slots.map((s) => slotHTML(s, day)).join("")}
@@ -6436,14 +6444,14 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     return `
     <section class="panel">
       <h3>Visas & entry</h3>
-      ${zones.schengen ? (au ? `<h4>Schengen Area — Australian passport</h4>
+      ${zones.schengen ? (au ? `<h4>🇪🇺 Schengen Area — Australian passport</h4>
       <ul>
         <li><b>No visa needed for up to 90 days in any 180-day period</b>, for tourism or visiting family. The 90 days are counted across <b>all 29 Schengen countries together</b> (in this planner: ${Object.keys(COUNTRIES).filter((c) => COUNTRIES[c].region === "schengen").map((c) => COUNTRIES[c].name).join(", ")}).</li>
         <li><b>Entry/Exit System (EES):</b> since 10 April 2026 your fingerprints and a photo are recorded the first time you enter, and every entry and exit is logged digitally instead of stamped. Allow extra time at your first border.</li>
         <li><b>ETIAS</b> (an online travel authorisation, about €20, valid 3 years) is <b>not yet required</b>. The EU dropped its late-2026 target; it's now expected in 2027, with a transition period. Check travel-europe.europa.eu before you fly — and use only that official site.</li>
         <li>Your passport must be valid for 3 months after you leave Schengen and issued within the last 10 years. Border officers may ask for your return ticket, accommodation and funds.</li>
         <li>Australia has older bilateral agreements with some Schengen countries that can allow extra time in that one country; they're complicated — ask that country's embassy before relying on one.</li>
-      </ul>` : `<h4>Schengen Area</h4>
+      </ul>` : `<h4>🇪🇺 Schengen Area</h4>
       <ol>
         <li><b>Visa-free (90 days in any 180):</b> citizens of the UK, US, Canada, Australia, New Zealand, Japan, South Korea, Singapore, Malaysia, the UAE, Brazil and many others. You'll be registered in the Entry/Exit System (fingerprints and photo) on first entry; ETIAS isn't required yet (expected 2027).</li>
         <li><b>Schengen visa (type C):</b> needed by many passports, e.g. India, Pakistan, Indonesia, the Philippines, China, Türkiye, Saudi Arabia, Egypt.
@@ -6453,11 +6461,11 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
             <li>Bring: passport (valid 3+ months after the trip, 2 blank pages), photo, flight bookings, hotel bookings or this itinerary, travel insurance with at least €30,000 medical cover valid across Schengen, bank statements, and proof of employment or study.</li>
           </ul></li>
       </ol>`) : ""}
-      ${zones.uk ? (au ? `<h4>United Kingdom</h4><p>Australians need an <b>Electronic Travel Authorisation (ETA)</b>: £20 since April 2026, applied for in the official UK ETA app or on GOV.UK (beware look-alike sites). Usually approved within 3 working days, valid 2 years, stays of up to 6 months. Australians can use the eGates at the border. The UK isn't in Schengen — days there don't count towards your 90.</p>`
-        : `<h4>United Kingdom</h4><p>Visitors who don't need a visa — including EU, US and Canadian citizens — need a UK ETA (£20) before travelling. Others need a Standard Visitor visa (apply on GOV.UK).</p>`) : ""}
-      ${zones.tr ? (au ? `<h4>Türkiye</h4><p><b>Visa-free for Australians since 17 April 2026</b> for tourism, up to 90 days in any 180 days. Many websites (and older consulate pages) still say an e-Visa is needed — check Smartraveller's Türkiye page before you fly. Passport valid 150 days beyond arrival.</p>`
-        : `<h4>Türkiye</h4><p>Many nationalities are visa-free; others need an e-Visa, applied for only on the official site evisa.gov.tr (agent sites charge more).</p>`) : ""}
-      ${Object.keys(REGIONS).filter((r) => zones[r]).map((r) => `<h4>${esc(REGIONS[r].name)}</h4><p>${au ? REGIONS[r].au : REGIONS[r].other}</p>`).join("")}
+      ${zones.uk ? (au ? `<h4>🇬🇧 United Kingdom</h4><p>Australians need an <b>Electronic Travel Authorisation (ETA)</b>: £20 since April 2026, applied for in the official UK ETA app or on GOV.UK (beware look-alike sites). Usually approved within 3 working days, valid 2 years, stays of up to 6 months. Australians can use the eGates at the border. The UK isn't in Schengen — days there don't count towards your 90.</p>`
+        : `<h4>🇬🇧 United Kingdom</h4><p>Visitors who don't need a visa — including EU, US and Canadian citizens — need a UK ETA (£20) before travelling. Others need a Standard Visitor visa (apply on GOV.UK).</p>`) : ""}
+      ${zones.tr ? (au ? `<h4>🇹🇷 Türkiye</h4><p><b>Visa-free for Australians since 17 April 2026</b> for tourism, up to 90 days in any 180 days. Many websites (and older consulate pages) still say an e-Visa is needed — check Smartraveller's Türkiye page before you fly. Passport valid 150 days beyond arrival.</p>`
+        : `<h4>🇹🇷 Türkiye</h4><p>Many nationalities are visa-free; others need an e-Visa, applied for only on the official site evisa.gov.tr (agent sites charge more).</p>`) : ""}
+      ${Object.keys(REGIONS).filter((r) => zones[r]).map((r) => `<h4>${COUNTRIES[r] ? COUNTRIES[r].flag + " " : ""}${esc(REGIONS[r].name)}</h4><p>${au ? REGIONS[r].au : REGIONS[r].other}</p>`).join("")}
       ${banned.length ? `<div class="note warn"><b class="tag">Good to know</b><span><b>Face-covering laws:</b> wearing a face covering such as the niqab or burqa in public is banned in ${banned.map((b) => b[1]).join("; ")}, with fines. Headscarves (hijab) are not affected.</span></div>` : ""}
     </section>
 
@@ -6543,7 +6551,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       <h3>Flights to and from Sydney</h3>
       <p>Suggested ticket: <b>Sydney → ${esc(CITIES[first].name)}</b>${first === last ? " and back" : `, returning <b>${esc(CITIES[last].name)} → Sydney</b> (book as a multi-city ticket on the airline's site, Google Flights or Skyscanner)`}. Flights leave Sydney in the afternoon or evening and usually land in Europe early the next morning, local time.</p>
       <div class="tbl-wrap"><table><thead><tr><th>City</th><th>Airport</th><th>From Sydney</th></tr></thead><tbody>
-        ${rows.map(([id, f]) => `<tr><td><b>${esc(CITIES[id].name)}</b>${id === first ? " · start" : ""}${id === last ? " · end" : ""}</td><td>${esc(f.airport)}</td><td>${esc(f.text)}</td></tr>`).join("")}
+        ${rows.map(([id, f]) => `<tr><td><b>${flagOf(id)} ${esc(CITIES[id].name)}</b>${id === first ? " · start" : ""}${id === last ? " · end" : ""}</td><td>${esc(f.airport)}</td><td>${esc(f.text)}</td></tr>`).join("")}
       </tbody></table></div>
       <ul>
         <li>No nonstop flights from Sydney to Europe yet: Qantas plans Sydney–London nonstop from October 2027. Until then the main one-stop options are ${esc(SYD_HUBS)}.</li>
@@ -6660,14 +6668,15 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       rows: [["Hello", "Здравствуйте", "ZDRAST-vooy-teh"], ["Peace be upon you", "Ассаляму алейкум", "as-sa-LYA-moo a-LAY-koom"], ["Thank you", "Спасибо", "spa-SEE-ba"], ["Please", "Пожалуйста", "pa-ZHAL-sta"], ["Excuse me / sorry", "Извините", "iz-vi-NEE-teh"], ["Do you speak English?", "Вы говорите по-английски?", "vy ga-va-REE-teh pa-an-GLEE-ski"], ["How much is it?", "Сколько стоит?", "SKOL-ka STO-it"], ["The bill, please", "Счёт, пожалуйста", "shchyot pa-ZHAL-sta"], ["Where is …?", "Где …?", "gdyeh"], ["Is it halal?", "Это халяль?", "EH-ta kha-LYAL"], ["I don't eat pork", "Я не ем свинину", "ya nyeh yem svi-NEE-noo"], ["No alcohol", "Без алкоголя", "byez al-ka-GO-lya"], ["Where is the mosque?", "Где мечеть?", "gdyeh mye-CHET"], ["Help!", "Помогите!", "pa-ma-GEE-teh"]] },
   };
 
+  const langFlags = (l) => { const fl = Object.keys(COUNTRIES).filter((c) => COUNTRIES[c].lang === l && state.stops.some((st) => CITIES[st.city].country === c)).map((c) => COUNTRIES[c].flag); return (fl.length ? fl : Object.keys(COUNTRIES).filter((c) => COUNTRIES[c].lang === l).map((c) => COUNTRIES[c].flag).slice(0, 3)).join(" "); };
   function phrasesHTML(langs) {
     if (!langs.length) return `<section class="panel"><h3>Phrases</h3><p>Your route is English-speaking. Ask “Is this halal?” and “Is there any pork, alcohol or gelatine in it?” — staff are used to the question, especially in London.</p><div class="card-show"><div class="big">${esc(CARD_EN)}</div></div></section>`;
     return `<section class="panel">
       <h3>Halal cards — show these to restaurant staff</h3>
       <p class="hint">Screenshot the card for each country. In English: “${esc(CARD_EN)}”</p>
-      ${langs.map((l) => `<div class="card-show"><b class="tag">${esc(PHRASES[l].name)} · ${esc(PHRASES[l].where)}</b><div class="big" lang="${l}">${esc(PHRASES[l].card)}</div><div class="actions"><button type="button" class="btn small" data-copycard="${l}">Copy ${esc(PHRASES[l].name)} text</button></div></div>`).join("")}
+      ${langs.map((l) => `<div class="card-show"><b class="tag">${langFlags(l)} ${esc(PHRASES[l].name)} · ${esc(PHRASES[l].where)}</b><div class="big" lang="${l}">${esc(PHRASES[l].card)}</div><div class="actions"><button type="button" class="btn small" data-copycard="${l}">Copy ${esc(PHRASES[l].name)} text</button></div></div>`).join("")}
     </section>
-    ${langs.map((l) => `<section class="panel"><h3>${esc(PHRASES[l].name)}</h3><p class="hint">Spoken in ${esc(PHRASES[l].where)}. Capitals in the pronunciation show the stressed syllable.</p><div class="tbl-wrap"><table><thead><tr><th>English</th><th>${esc(PHRASES[l].name)}</th><th>Say it</th></tr></thead><tbody>
+    ${langs.map((l) => `<section class="panel"><h3>${langFlags(l)} ${esc(PHRASES[l].name)}</h3><p class="hint">Spoken in ${esc(PHRASES[l].where)}. Capitals in the pronunciation show the stressed syllable.</p><div class="tbl-wrap"><table><thead><tr><th>English</th><th>${esc(PHRASES[l].name)}</th><th>Say it</th></tr></thead><tbody>
       ${PHRASES[l].rows.map(([en, lo, say]) => `<tr><td>${esc(en)}</td><td class="zh" lang="${l}">${esc(lo)}</td><td class="py">${esc(say)}</td></tr>`).join("")}</tbody></table></div></section>`).join("")}`;
   }
 
@@ -6915,7 +6924,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     });
 
     // Labels, placed to avoid each other and the markers
-    const label = (p) => `${CITIES[p.id].name}${p.nights ? " · " + p.nights + "N" : ""}${p.air && !p.nums.length ? " ✈" : ""}`;
+    const label = (p) => `${flagOf(p.id)} ${CITIES[p.id].name}${p.nights ? " · " + p.nights + "N" : ""}${p.air && !p.nums.length ? " ✈" : ""}`;
     const placeLabels = (pts, z, bounds) => {
       const boxes = pts.map((p) => [p.xy[0] - 11 / z, p.xy[1] - 11 / z, 22 / z, 22 / z]);
       const hit = (b) => boxes.some((o) => b[0] < o[0] + o[2] && b[0] + b[2] > o[0] && b[1] < o[1] + o[3] && b[1] + b[3] > o[1]) ||
@@ -6985,7 +6994,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
         <div class="map-wrap">${plan.map.svg}</div>
         <div class="map-legend">${plan.map.legend}<span><svg width="22" height="22" aria-hidden="true"><circle class="map-stop" cx="11" cy="11" r="9"/><text class="map-num" x="11" y="15" style="font-size:11px">1</text></svg>Stop number</span></div>
         <div class="tbl-wrap"><table><thead><tr><th>Leg</th><th>How</th><th>Details</th></tr></thead><tbody>
-          ${plan.map.legs.map((l) => `<tr><td><b>${esc(CITIES[l.a.id].name)} → ${esc(CITIES[l.b.id].name)}</b></td><td>${l.mode === "unset" ? `Not chosen<br><span class="hint">recommended: ${MODE[recommendedMode(l.a.id, l.b.id)].label}</span>` : MODE[l.mode].icon + " " + MODE[l.mode].label + (legInfo(l.a.id, l.b.id).auto ? '<br><span class="badge top">recommended</span>' : "")}</td><td>${l.mode === "unset" ? legOptionsHTML(l.a.id, l.b.id) : esc(modeText(l.mode, l.a.id, l.b.id))}</td></tr>`).join("")}
+          ${plan.map.legs.map((l) => `<tr><td><b>${flagOf(l.a.id)} ${esc(CITIES[l.a.id].name)} → ${flagOf(l.b.id)} ${esc(CITIES[l.b.id].name)}</b></td><td>${l.mode === "unset" ? `Not chosen<br><span class="hint">recommended: ${MODE[recommendedMode(l.a.id, l.b.id)].label}</span>` : MODE[l.mode].icon + " " + MODE[l.mode].label + (legInfo(l.a.id, l.b.id).auto ? '<br><span class="badge top">recommended</span>' : "")}</td><td>${l.mode === "unset" ? legOptionsHTML(l.a.id, l.b.id) : esc(modeText(l.mode, l.a.id, l.b.id))}</td></tr>`).join("")}
         </tbody></table></div>
         <p><a href="${googleTripLink(plan)}" target="_blank" rel="noopener">Open the whole route in Google Maps ↗</a></p>
       </section>
@@ -7113,7 +7122,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     if (!pv) { pv = document.createElement("div"); pv.id = "printView"; pv.setAttribute("aria-hidden", "true"); document.body.appendChild(pv); }
     const pages = [];
     const head = (t, sub) => `<div class="pv-head"><span>Europe Trip Planner</span><span>${esc(sub || "")}</span></div><h1>${t}</h1>`;
-    const routeTxt = [fromSyd() ? "Sydney" : null, c.arrId !== c.ids[0] ? CITIES[c.arrId].name : null].filter(Boolean).concat(state.stops.map((s) => `${CITIES[s.city].name} (${s.nights}N)`), [c.depId !== c.ids[c.ids.length - 1] ? CITIES[c.depId].name : null, fromSyd() ? "Sydney" : null].filter(Boolean)).join(" → ");
+    const routeTxt = [fromSyd() ? "Sydney" : null, c.arrId !== c.ids[0] ? CITIES[c.arrId].name : null].filter(Boolean).concat(state.stops.map((s) => `${fname(s.city)} (${s.nights}N)`), [c.depId !== c.ids[c.ids.length - 1] ? CITIES[c.depId].name : null, fromSyd() ? "Sydney" : null].filter(Boolean)).join(" → ");
 
     // 1. Overview: the At a glance table (long trips continue on the next page), then the trip notes on their own page
     const gRows = glanceRows(plan, true), PER = 16;
@@ -7133,7 +7142,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     // 1b. Route map
     pages.push(`${head("Route map")}<div class="pv-map">${plan.map.svg}</div><div class="map-legend">${plan.map.legend}</div>
       <table class="pv-tbl"><thead><tr><th>Leg</th><th>How</th><th>Details</th></tr></thead><tbody>
-      ${plan.map.legs.map((l) => `<tr><td><b>${esc(CITIES[l.a.id].name)} → ${esc(CITIES[l.b.id].name)}</b></td><td>${MODE[l.mode].label}</td><td>${l.mode === "unset" ? esc(modesFor(l.a.id, l.b.id).map((m) => MODE[m].label + " ~" + dur(modeEstimate(m, l.a.id, l.b.id).door)).join(" · ")) : esc(firstSentence(modeText(l.mode, l.a.id, l.b.id)))}</td></tr>`).join("")}
+      ${plan.map.legs.map((l) => `<tr><td><b>${flagOf(l.a.id)} ${esc(CITIES[l.a.id].name)} → ${flagOf(l.b.id)} ${esc(CITIES[l.b.id].name)}</b></td><td>${MODE[l.mode].label}</td><td>${l.mode === "unset" ? esc(modesFor(l.a.id, l.b.id).map((m) => MODE[m].label + " ~" + dur(modeEstimate(m, l.a.id, l.b.id).door)).join(" · ")) : esc(firstSentence(modeText(l.mode, l.a.id, l.b.id)))}</td></tr>`).join("")}
       </tbody></table>`);
 
     // 2. One page per day
@@ -7180,9 +7189,9 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
 
     // 5. Phrases
     const many = c.langs.length > 3;
-    const rows = c.langs.reduce((acc, l) => acc.concat([[PHRASES[l].name]], PHRASES[l].rows.slice(0, many ? 8 : 14)), []);
+    const rows = c.langs.reduce((acc, l) => acc.concat([[langFlags(l) + " " + PHRASES[l].name]], PHRASES[l].rows.slice(0, many ? 8 : 14)), []);
     pages.push(`${head("Phrases & halal cards")}
-      ${(c.langs.length ? c.langs : []).map((l) => `<div class="pv-card"><b>${esc(PHRASES[l].name)}:</b> ${esc(PHRASES[l].card)}</div>`).join("")}
+      ${(c.langs.length ? c.langs : []).map((l) => `<div class="pv-card"><b>${langFlags(l)} ${esc(PHRASES[l].name)}:</b> ${esc(PHRASES[l].card)}</div>`).join("")}
       <div class="pv-card"><span class="pv-meta">${esc(CARD_EN)}</span></div>
       ${rows.length ? phraseTables(rows) : ""}`);
 
@@ -7405,10 +7414,10 @@ ${pv}
     const strip = plain;
     const L = [];
     L.push(`EUROPE TRIP — ${state.days} days`);
-    L.push(state.stops.map((s) => `${CITIES[s.city].name} (${s.nights}N)`).join(" → "));
+    L.push(state.stops.map((s) => `${fname(s.city)} (${s.nights}N)`).join(" → "));
     L.push("");
     lastPlan.days.forEach((d, i) => {
-      L.push(`DAY ${i + 1}${d.date ? " — " + fmtDate(d.date) : ""} · ${d.city.name} · ${dayTitle(d)}`);
+      L.push(`DAY ${i + 1}${d.date ? " — " + fmtDate(d.date) : ""} · ${fname(d.cityId)} · ${dayTitle(d)}`);
       timelineFor(d, i).forEach((x) => L.push(`  ${hhmm(x.start)}${x.end > x.start ? "–" + hhmm(x.end) : ""}  ${x.title}${x.note ? " — " + x.note : ""}`));
       L.push("  Details:");
       d.slots.forEach((s) => {
