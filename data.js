@@ -11,6 +11,22 @@
    nightsRec — the number of nights we recommend; rail — rail network group (null = no useful railway);
    island — reached only by air or sea. */
 
+/* ---------- DATA REFRESH — updated by the weekly refresh (see tools/REFRESH.md) ---------- */
+const DATA_INFO = {
+  refreshed: "2026-11-05", // date the data was last checked (YYYY-MM-DD)
+  covers: "exchange rates, entry rules for Australians, Sydney flights, prices, opening days, hotels, halal food and transport",
+};
+/* Exchange rates: eurAud = A$ per €1 (mid-market); perEur = units of each currency per €1 (ECB reference rates).
+   Everything converts through the euro. Checked 2026-11-05: EUR/AUD ≈ 1.60 (ECB/Wise/MTFX 4 Nov); GBP, CHF, CZK,
+   DKK, HUF, PLN, RON from ECB 3–4 Nov; SEK, NOK, ISK, RSD, MKD, ALL, TRY, RUB not re-verified (mid-2026 values). */
+const FX = {
+  eurAud: 1.60,
+  perEur: { EUR: 1, GBP: 0.834, CHF: 0.919, CZK: 24.34, HUF: 364.4, PLN: 4.42, DKK: 7.47, SEK: 11.07, NOK: 11.26, ISK: 144, RON: 5.34,
+    RSD: 117.2, MKD: 61.6, ALL: 98, BAM: 1.95583, TRY: 53.5, RUB: 92 },
+};
+const CUR_CODE = { gb: "GBP", ch: "CHF", cz: "CZK", hu: "HUF", pl: "PLN", dk: "DKK", se: "SEK", no: "NOK", is: "ISK", ro: "RON",
+  rs: "RSD", mk: "MKD", al: "ALL", ba: "BAM", tr: "TRY", ru: "RUB" };
+
 const TRIP_TYPES = [
   { id: "sightseeing", label: "Sightseeing" },
   { id: "culture", label: "Culture & history", tags: ["culture", "history"] },

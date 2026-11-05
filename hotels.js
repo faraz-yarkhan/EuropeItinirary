@@ -176,13 +176,3 @@ Object.keys(HOTEL_PICKS).forEach((id) => {
   if (!CITIES[id]) return;
   CITIES[id].hotels = HOTEL_PICKS[id].map((h, i) => ({ tier: ["best", "rec", "budget"][i], n: h[0], area: h[1], ll: [h[2], h[3]], price: [h[4], h[5]], note: h[6] }));
 });
-
-/* Approximate exchange rates: units of each currency per 1 euro (ECB/market rates, mid-2026), and the euro in AUD.
-   The traveller can change the AUD rate in the form; everything else converts through the euro. */
-const FX = {
-  asOf: "mid-2026", eurAud: 1.64,
-  perEur: { EUR: 1, GBP: 0.86, CHF: 0.923, CZK: 24.25, HUF: 355, PLN: 4.29, DKK: 7.46, SEK: 11.07, NOK: 11.26, ISK: 144, RON: 5.08,
-    RSD: 117.2, MKD: 61.6, ALL: 98, BAM: 1.95583, TRY: 53.5, RUB: 92 },
-};
-const CUR_CODE = { gb: "GBP", ch: "CHF", cz: "CZK", hu: "HUF", pl: "PLN", dk: "DKK", se: "SEK", no: "NOK", is: "ISK", ro: "RON",
-  rs: "RSD", mk: "MKD", al: "ALL", ba: "BAM", tr: "TRY", ru: "RUB" };

@@ -909,6 +909,7 @@ body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 
 .ownplace input[type=text] { flex: 1 1 180px; min-height: 36px; padding: 5px 8px; }
 .chip.own { border-style: dashed; }
 .day-title .dflag { font-size: 0.95em; margin-right: 2px; }
+.refresh { max-width: 1320px; margin: 28px auto 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
 .quick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .quick .hint { flex-basis: 100%; }
 .nlist { display: grid; gap: 6px; }
@@ -1228,9 +1229,9 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
       <div class="row">
         <span class="hint" style="width:62px">A$</span>
         <label class="check" for="audOn"><input type="checkbox" id="audOn" checked> <span>Show ≈A$ next to prices</span></label>
-        <span class="pair"><label class="hint" for="eurAud">€1 =&nbsp;A$</label><input type="number" id="eurAud" step="0.01" min="0.3" max="5" value="1.64" style="width:84px"></span>
+        <span class="pair"><label class="hint" for="eurAud">€1 =&nbsp;A$</label><input type="number" id="eurAud" step="0.01" min="0.3" max="5" value="1.60" style="width:84px"></span>
       </div>
-      <p class="hint">Exchange rate as of mid-2026 (other currencies convert via the euro). Update it to today's rate for better estimates.</p>
+      <p class="hint" id="rateNote">Mid-market rate, checked weekly; other currencies convert via the euro. Type your own rate to override it.</p>
     </div>
     <button type="submit" class="btn primary" id="go">Build / update my itinerary</button>
     <button type="button" class="btn print-btn" data-print>🖨 Print itinerary & info</button>
@@ -1242,6 +1243,7 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
   <section class="out" id="out" aria-live="polite"></section>
 </main>
 
+<footer class="refresh" id="refreshFooter">Data last refreshed: 5 Nov 2026 (exchange rates, entry rules for Australians, Sydney flights, prices, opening days, hotels, halal food and transport). Checked weekly.</footer>
 <script>
   window.onerror = function (msg) {
     var n = document.getElementById("nojs"), e = document.getElementById("jsError");
@@ -1266,6 +1268,22 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
    insta [{n, ll, note, when}] — Instagram-worthy spots and the best time to shoot them;
    nightsRec — the number of nights we recommend; rail — rail network group (null = no useful railway);
    island — reached only by air or sea. */
+
+/* ---------- DATA REFRESH — updated by the weekly refresh (see tools/REFRESH.md) ---------- */
+const DATA_INFO = {
+  refreshed: "2026-11-05", // date the data was last checked (YYYY-MM-DD)
+  covers: "exchange rates, entry rules for Australians, Sydney flights, prices, opening days, hotels, halal food and transport",
+};
+/* Exchange rates: eurAud = A$ per €1 (mid-market); perEur = units of each currency per €1 (ECB reference rates).
+   Everything converts through the euro. Checked 2026-11-05: EUR/AUD ≈ 1.60 (ECB/Wise/MTFX 4 Nov); GBP, CHF, CZK,
+   DKK, HUF, PLN, RON from ECB 3–4 Nov; SEK, NOK, ISK, RSD, MKD, ALL, TRY, RUB not re-verified (mid-2026 values). */
+const FX = {
+  eurAud: 1.60,
+  perEur: { EUR: 1, GBP: 0.834, CHF: 0.919, CZK: 24.34, HUF: 364.4, PLN: 4.42, DKK: 7.47, SEK: 11.07, NOK: 11.26, ISK: 144, RON: 5.34,
+    RSD: 117.2, MKD: 61.6, ALL: 98, BAM: 1.95583, TRY: 53.5, RUB: 92 },
+};
+const CUR_CODE = { gb: "GBP", ch: "CHF", cz: "CZK", hu: "HUF", pl: "PLN", dk: "DKK", se: "SEK", no: "NOK", is: "ISK", ro: "RON",
+  rs: "RSD", mk: "MKD", al: "ALL", ba: "BAM", tr: "TRY", ru: "RUB" };
 
 const TRIP_TYPES = [
   { id: "sightseeing", label: "Sightseeing" },
@@ -4464,16 +4482,6 @@ Object.keys(HOTEL_PICKS).forEach((id) => {
   CITIES[id].hotels = HOTEL_PICKS[id].map((h, i) => ({ tier: ["best", "rec", "budget"][i], n: h[0], area: h[1], ll: [h[2], h[3]], price: [h[4], h[5]], note: h[6] }));
 });
 
-/* Approximate exchange rates: units of each currency per 1 euro (ECB/market rates, mid-2026), and the euro in AUD.
-   The traveller can change the AUD rate in the form; everything else converts through the euro. */
-const FX = {
-  asOf: "mid-2026", eurAud: 1.64,
-  perEur: { EUR: 1, GBP: 0.86, CHF: 0.923, CZK: 24.25, HUF: 355, PLN: 4.29, DKK: 7.46, SEK: 11.07, NOK: 11.26, ISK: 144, RON: 5.08,
-    RSD: 117.2, MKD: 61.6, ALL: 98, BAM: 1.95583, TRY: 53.5, RUB: 92 },
-};
-const CUR_CODE = { gb: "GBP", ch: "CHF", cz: "CZK", hu: "HUF", pl: "PLN", dk: "DKK", se: "SEK", no: "NOK", is: "ISK", ro: "RON",
-  rs: "RSD", mk: "MKD", al: "ALL", ba: "BAM", tr: "TRY", ru: "RUB" };
-
 </script>
 <script>
 /* Intercity routes for the Europe Trip Planner. The first sentence names the recommended way to travel
@@ -4770,7 +4778,8 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
   state.hotels = state.hotels || {};
   state.custom = state.custom || {};
   syncCustomPlaces();
-  if (!(+state.eurAud > 0)) state.eurAud = FX.eurAud;
+  // Follow each weekly rate update unless the traveller typed their own rate
+  if (!state.eurAudSet || !(+state.eurAud > 0)) state.eurAud = FX.eurAud;
   if (state.arrive && !CITIES[state.arrive]) state.arrive = "";
   if (state.depart && !CITIES[state.depart]) state.depart = "";
   let isExample = !saved;
@@ -4902,6 +4911,11 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       ? `<b>From Sydney:</b> ${esc(f.text)} Arrive at ${esc(f.airport)}. Central Europe is 8–10 h behind Sydney (the UK and Portugal 9–11 h, Greece and Türkiye 7–9 h), so expect real jet lag: get outside in daylight and stay up until about 21:00 on day 1.`
       : `<b>Back to Sydney:</b> ${esc(f.text)} Fly out of ${esc(f.airport)}.`;
   }
+
+  /* ---------- when the data was last checked ---------- */
+  // "5 Nov 2026" from "2026-11-05"
+  const refreshedLabel = (() => { const d = new Date(DATA_INFO.refreshed + "T00:00:00"); return isNaN(d) ? DATA_INFO.refreshed : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); })();
+  const refreshLine = () => `Data last refreshed: ${refreshedLabel} (${DATA_INFO.covers}). Checked weekly.`;
 
   /* ---------- approximate AUD next to local prices ---------- */
   const CUR_TOK = { "≈€": "EUR", "€": "EUR", "£": "GBP", CHF: "CHF", "Kč": "CZK", Ft: "HUF", "zł": "PLN", lei: "RON", din: "RSD", den: "MKD", KM: "BAM", "₽": "RUB", "₺": "TRY" };
@@ -5720,7 +5734,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
         persist(); renderStops(); toast(`Location saved. Press “Build / update my itinerary” to re-plan ${CITIES[cid].name} from it.`);
         return;
       }
-      if (t.id === "audOn" || t.id === "eurAud") { readForm(); persist(); renderStops(); if (lastPlan) generate(false); return; }
+      if (t.id === "audOn" || t.id === "eurAud") { if (t.id === "eurAud") state.eurAudSet = Math.abs(parseFloat(t.value) - FX.eurAud) > 0.004; readForm(); persist(); renderStops(); if (lastPlan) generate(false); return; }
       if (t.dataset.act === "place" && t.value) { state.stops[+t.dataset.i].places.push(t.value); persist(); renderStops(); return; }
       if (t.dataset.act === "legdep" || t.dataset.act === "legarr" || t.dataset.act === "legmode") {
         const st = state.stops[+t.dataset.i];
@@ -6331,7 +6345,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
         <div class="fact"><b>${b.day}</b><span>${b.label} / person / day, incl. hotel share${routeIds.some((i) => ["gb", "ch"].includes(CITIES[i].country)) ? " · London & Switzerland ~30% more" : ""}</span></div>
         <div class="fact"><b>${state.pace === "relaxed" ? "Relaxed" : "Balanced"}</b><span>Pace</span></div>
       </div>
-      ${state.aud !== false ? `<p class="hint">≈A$ amounts use €1 = A$${(+state.eurAud).toFixed(2)} (change it in the form's Extras). They're estimates — your card's rate and fees will differ slightly.</p>` : ""}
+      ${state.aud !== false ? `<p class="hint no-aud">≈A$ amounts use €1 = A$${(+state.eurAud).toFixed(2)}${state.eurAudSet ? " (your rate)" : ` (mid-market rate checked ${refreshedLabel})`} — change it in the form's Extras. They're estimates — your card's rate and fees will differ slightly.</p>` : ""}
       <div class="notes">${notes.map(([k, t, h]) => `<div class="note ${k}"><b class="tag">${t}</b><span>${h}</span></div>`).join("")}</div>
       <div class="actions"><button type="button" class="btn print-btn" data-print>🖨 Print itinerary & info (${plan.days.length + 5 + glancePageCount(plan.days.length)} pages)</button><button type="button" class="btn" data-pdf>📄 Download PDF</button><button type="button" class="btn" data-save>📲 Save to phone (offline copy)</button><button type="button" class="btn" id="copyPlan">Copy itinerary as text</button></div>
     </div>`;
@@ -6369,7 +6383,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
        <div id="pane-stay" role="tabpanel" aria-labelledby="tab-stay" class="out" ${currentTab !== "stay" ? "hidden" : ""}><h2 class="print-only">Hotels, halal food, cafés & photo spots</h2>${stayHTML(ids)}</div>
        <div id="pane-prep" role="tabpanel" aria-labelledby="tab-prep" class="out" ${currentTab !== "prep" ? "hidden" : ""}><h2 class="print-only">Before you go</h2>${prepHTML(routeIds, zones)}</div>
        <div id="pane-talk" role="tabpanel" aria-labelledby="tab-talk" class="out" ${currentTab !== "talk" ? "hidden" : ""}><h2 class="print-only">Phrases</h2>${phrasesHTML(langs)}</div>
-       <p class="foot">Prices, opening hours and visa rules change. Figures here are typical for 2025–26 and meant for planning; confirm bookings and entry rules on official sites before you travel. Directions are estimates from map distance — use Google Maps or Citymapper on the day for live routes.</p>`;
+       <p class="foot"><b>${esc(refreshLine())}</b> Prices, opening hours and visa rules change. Figures here are typical for 2025–26 and meant for planning; confirm bookings and entry rules on official sites before you travel. Directions are estimates from map distance — use Google Maps or Citymapper on the day for live routes.</p>`;
     audifyIn(out);
     restoreChecks();
     plan.days.forEach((d, i) => { if (isEdited(d, i)) { const pids = new Set(timelineFor(d, i).map((x) => x.pid).filter(Boolean)); document.querySelectorAll(`#day-${i + 1} .slot[data-pid]`).forEach((sl) => (sl.hidden = !pids.has(sl.dataset.pid))); } });
@@ -7134,7 +7148,8 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     chunks.forEach((rows, k) => pages.push(k === 0
       ? `${head(`${state.days}-day trip · at a glance`, c.startD ? fmtDate(c.startD) + " – " + fmtDate(c.endD) : "")}
         <p class="pv-route">${esc(routeTxt)}</p>
-        ${gTable(rows)}`
+        ${gTable(rows)}
+        <p class="pv-meta">${esc(refreshLine())}</p>`
       : `${head("At a glance (continued)", c.startD ? fmtDate(c.startD) + " – " + fmtDate(c.endD) : "")}${gTable(rows)}`));
     pages.push(`${head("Trip notes")}
       <ul class="pv-notes">${c.notes.filter((n) => n[1] !== "Example").map(([, t, h]) => `<li><b>${t}:</b> ${plain(h)}</li>`).join("")}</ul>`);
@@ -7438,7 +7453,8 @@ ${pv}
       if (d.back && d.kind !== "depart") L.push(`  Back to hotel: ${strip(d.back.text)}`);
       L.push("");
     });
-    return state.aud === false ? L.join("\n") : audText(L.join("\n"), null);
+    const tail = "\n" + refreshLine() + (state.aud === false ? "" : `\nA$ amounts use €1 = A$${(+state.eurAud).toFixed(2)}.`);
+    return (state.aud === false ? L.join("\n") : audText(L.join("\n"), null)) + tail;
   }
 
   function copy(text, okMsg) {
@@ -7521,6 +7537,11 @@ ${pv}
     if (e.target.closest("[data-pvprint]")) { if (window.NO_PRINT) toast("Printing is blocked in this preview — use your browser's Share → Print, or open the web version."); else try { window.print(); } catch (err) { /* ignore */ } }
   });
   window.addEventListener("beforeprint", fitPrintPages);
+
+  const rf = $("#refreshFooter");
+  if (rf) rf.textContent = refreshLine();
+  const rn = $("#rateNote");
+  if (rn) rn.textContent = `Mid-market rate, checked ${refreshedLabel} and updated weekly; other currencies convert via the euro. Type your own rate to override it.`;
 
   renderForm();
   bindForm();

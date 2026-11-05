@@ -62,7 +62,8 @@
   state.hotels = state.hotels || {};
   state.custom = state.custom || {};
   syncCustomPlaces();
-  if (!(+state.eurAud > 0)) state.eurAud = FX.eurAud;
+  // Follow each weekly rate update unless the traveller typed their own rate
+  if (!state.eurAudSet || !(+state.eurAud > 0)) state.eurAud = FX.eurAud;
   if (state.arrive && !CITIES[state.arrive]) state.arrive = "";
   if (state.depart && !CITIES[state.depart]) state.depart = "";
   let isExample = !saved;
@@ -194,6 +195,11 @@
       ? `<b>From Sydney:</b> ${esc(f.text)} Arrive at ${esc(f.airport)}. Central Europe is 8–10 h behind Sydney (the UK and Portugal 9–11 h, Greece and Türkiye 7–9 h), so expect real jet lag: get outside in daylight and stay up until about 21:00 on day 1.`
       : `<b>Back to Sydney:</b> ${esc(f.text)} Fly out of ${esc(f.airport)}.`;
   }
+
+  /* ---------- when the data was last checked ---------- */
+  // "5 Nov 2026" from "2026-11-05"
+  const refreshedLabel = (() => { const d = new Date(DATA_INFO.refreshed + "T00:00:00"); return isNaN(d) ? DATA_INFO.refreshed : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); })();
+  const refreshLine = () => `Data last refreshed: ${refreshedLabel} (${DATA_INFO.covers}). Checked weekly.`;
 
   /* ---------- approximate AUD next to local prices ---------- */
   const CUR_TOK = { "≈€": "EUR", "€": "EUR", "£": "GBP", CHF: "CHF", "Kč": "CZK", Ft: "HUF", "zł": "PLN", lei: "RON", din: "RSD", den: "MKD", KM: "BAM", "₽": "RUB", "₺": "TRY" };
@@ -1012,7 +1018,7 @@
         persist(); renderStops(); toast(`Location saved. Press “Build / update my itinerary” to re-plan ${CITIES[cid].name} from it.`);
         return;
       }
-      if (t.id === "audOn" || t.id === "eurAud") { readForm(); persist(); renderStops(); if (lastPlan) generate(false); return; }
+      if (t.id === "audOn" || t.id === "eurAud") { if (t.id === "eurAud") state.eurAudSet = Math.abs(parseFloat(t.value) - FX.eurAud) > 0.004; readForm(); persist(); renderStops(); if (lastPlan) generate(false); return; }
       if (t.dataset.act === "place" && t.value) { state.stops[+t.dataset.i].places.push(t.value); persist(); renderStops(); return; }
       if (t.dataset.act === "legdep" || t.dataset.act === "legarr" || t.dataset.act === "legmode") {
         const st = state.stops[+t.dataset.i];
@@ -1623,7 +1629,7 @@
         <div class="fact"><b>${b.day}</b><span>${b.label} / person / day, incl. hotel share${routeIds.some((i) => ["gb", "ch"].includes(CITIES[i].country)) ? " · London & Switzerland ~30% more" : ""}</span></div>
         <div class="fact"><b>${state.pace === "relaxed" ? "Relaxed" : "Balanced"}</b><span>Pace</span></div>
       </div>
-      ${state.aud !== false ? `<p class="hint">≈A$ amounts use €1 = A$${(+state.eurAud).toFixed(2)} (change it in the form's Extras). They're estimates — your card's rate and fees will differ slightly.</p>` : ""}
+      ${state.aud !== false ? `<p class="hint no-aud">≈A$ amounts use €1 = A$${(+state.eurAud).toFixed(2)}${state.eurAudSet ? " (your rate)" : ` (mid-market rate checked ${refreshedLabel})`} — change it in the form's Extras. They're estimates — your card's rate and fees will differ slightly.</p>` : ""}
       <div class="notes">${notes.map(([k, t, h]) => `<div class="note ${k}"><b class="tag">${t}</b><span>${h}</span></div>`).join("")}</div>
       <div class="actions"><button type="button" class="btn print-btn" data-print>🖨 Print itinerary & info (${plan.days.length + 5 + glancePageCount(plan.days.length)} pages)</button><button type="button" class="btn" data-pdf>📄 Download PDF</button><button type="button" class="btn" data-save>📲 Save to phone (offline copy)</button><button type="button" class="btn" id="copyPlan">Copy itinerary as text</button></div>
     </div>`;
@@ -1661,7 +1667,7 @@
        <div id="pane-stay" role="tabpanel" aria-labelledby="tab-stay" class="out" ${currentTab !== "stay" ? "hidden" : ""}><h2 class="print-only">Hotels, halal food, cafés & photo spots</h2>${stayHTML(ids)}</div>
        <div id="pane-prep" role="tabpanel" aria-labelledby="tab-prep" class="out" ${currentTab !== "prep" ? "hidden" : ""}><h2 class="print-only">Before you go</h2>${prepHTML(routeIds, zones)}</div>
        <div id="pane-talk" role="tabpanel" aria-labelledby="tab-talk" class="out" ${currentTab !== "talk" ? "hidden" : ""}><h2 class="print-only">Phrases</h2>${phrasesHTML(langs)}</div>
-       <p class="foot">Prices, opening hours and visa rules change. Figures here are typical for 2025–26 and meant for planning; confirm bookings and entry rules on official sites before you travel. Directions are estimates from map distance — use Google Maps or Citymapper on the day for live routes.</p>`;
+       <p class="foot"><b>${esc(refreshLine())}</b> Prices, opening hours and visa rules change. Figures here are typical for 2025–26 and meant for planning; confirm bookings and entry rules on official sites before you travel. Directions are estimates from map distance — use Google Maps or Citymapper on the day for live routes.</p>`;
     audifyIn(out);
     restoreChecks();
     plan.days.forEach((d, i) => { if (isEdited(d, i)) { const pids = new Set(timelineFor(d, i).map((x) => x.pid).filter(Boolean)); document.querySelectorAll(`#day-${i + 1} .slot[data-pid]`).forEach((sl) => (sl.hidden = !pids.has(sl.dataset.pid))); } });
@@ -2426,7 +2432,8 @@
     chunks.forEach((rows, k) => pages.push(k === 0
       ? `${head(`${state.days}-day trip · at a glance`, c.startD ? fmtDate(c.startD) + " – " + fmtDate(c.endD) : "")}
         <p class="pv-route">${esc(routeTxt)}</p>
-        ${gTable(rows)}`
+        ${gTable(rows)}
+        <p class="pv-meta">${esc(refreshLine())}</p>`
       : `${head("At a glance (continued)", c.startD ? fmtDate(c.startD) + " – " + fmtDate(c.endD) : "")}${gTable(rows)}`));
     pages.push(`${head("Trip notes")}
       <ul class="pv-notes">${c.notes.filter((n) => n[1] !== "Example").map(([, t, h]) => `<li><b>${t}:</b> ${plain(h)}</li>`).join("")}</ul>`);
@@ -2730,7 +2737,8 @@ ${pv}
       if (d.back && d.kind !== "depart") L.push(`  Back to hotel: ${strip(d.back.text)}`);
       L.push("");
     });
-    return state.aud === false ? L.join("\n") : audText(L.join("\n"), null);
+    const tail = "\n" + refreshLine() + (state.aud === false ? "" : `\nA$ amounts use €1 = A$${(+state.eurAud).toFixed(2)}.`);
+    return (state.aud === false ? L.join("\n") : audText(L.join("\n"), null)) + tail;
   }
 
   function copy(text, okMsg) {
@@ -2813,6 +2821,11 @@ ${pv}
     if (e.target.closest("[data-pvprint]")) { if (window.NO_PRINT) toast("Printing is blocked in this preview — use your browser's Share → Print, or open the web version."); else try { window.print(); } catch (err) { /* ignore */ } }
   });
   window.addEventListener("beforeprint", fitPrintPages);
+
+  const rf = $("#refreshFooter");
+  if (rf) rf.textContent = refreshLine();
+  const rn = $("#rateNote");
+  if (rn) rn.textContent = `Mid-market rate, checked ${refreshedLabel} and updated weekly; other currencies convert via the euro. Type your own rate to override it.`;
 
   renderForm();
   bindForm();
