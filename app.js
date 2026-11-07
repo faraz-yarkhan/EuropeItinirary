@@ -690,6 +690,12 @@
       <b class="hint">Add your own idea in ${esc(c.name)}</b>
       <div class="row"><input type="text" id="ownname-${i}" placeholder="e.g. Day trip to Florence · Lake Como · Sunset at a rooftop · Shakespeare's Globe" aria-label="Your idea" autocomplete="off" value="${esc(ownFound[st.city] || "")}">
         <button type="button" class="btn small print-btn" data-act="ownfind" data-i="${i}">➕ Add</button><button type="button" class="btn small" data-act="ownclose" data-i="${i}">Done</button></div>
+      <div class="row ownopts">
+        <label class="hint" for="owndur-${i}">Time there</label>
+        <select id="owndur-${i}"><option value="auto">From my words</option><option value="1 h">1 hour</option><option value="2 h">2 hours</option><option value="3 h">3 hours</option><option value="4 h">Half day (4 h)</option><option value="full">Full day</option></select>
+        <label class="hint" for="ownwhen-${i}">When</label>
+        <select id="ownwhen-${i}"><option value="auto">From my words</option><option value="any">Any time</option><option value="m">Morning</option><option value="e">Afternoon</option><option value="n">Evening</option></select>
+      </div>
       <div class="hint" id="ownmsg-${i}">${ownMsg[st.city] || "Write it the way you'd say it — a place, a day trip or something to do, with “morning”, “sunset” or “2 hours” if you like. We'll work out where it is, how to get there and where it fits."}</div>
     </div>`;
   }
@@ -719,31 +725,64 @@
     const m = recommendedMode(fromId, toId), e = modeEstimate(m, fromId, toId);
     return { m, mins: e.door, text: `${MODE[m].icon} ${MODE[m].label} ${CITIES[fromId].name.replace(/ \(.*\)/, "")} → ${CITIES[toId].name.replace(/ \(.*\)/, "")}, about ${dur(e.ride)} each way (${dur(e.door)} door to door), approx. ${e.cost}. ${firstSentence(routeText(fromId, toId))}` };
   }
+  const ownPending = {}, ownResults = {};
+  const ideaSay = (i, h) => { const cid = state.stops[i].city; ownMsg[cid] = h; const m = $("#ownmsg-" + i); if (m) m.innerHTML = h; };
+  function ideaFinish(i, p, msg) {
+    const st = state.stops[i], cid = st.city, c = CITIES[cid];
+    if (p.custom) { (state.custom[cid] = state.custom[cid] || []).push(p); syncCustomPlaces(); }
+    if (st.places.indexOf(p.id) < 0) st.places.push(p.id);
+    ownFound[cid] = "";
+    persist(); renderStops();
+    ideaSay(i, msg + " Press “Build / update my itinerary” to fit it into your days. Add another idea, or tap Done.");
+    toast(`Added to ${c.name}: ${p.n}`);
+  }
+  // A custom place at a location (or without one); timing from the selectors, else from the words
+  function ideaPlace(i, pend, ll, name, d, url, src, how) {
+    const c = CITIES[state.stops[i].city], tm = pend.tm;
+    const dist = ll ? km(c.stay.ll, ll) : 0, far = dist > 15;
+    const xMins = Math.round(((dist * 1.3) / 60) * 60 + 30);
+    const slots = tm.slot === "any" ? ["m", "e", "n"] : tm.slot ? [tm.slot] : [far ? "full" : "e"];
+    return { id: c.id + "-u" + Date.now().toString(36), custom: true, c: "Check the official website", r: 2, idea: pend.raw,
+      n: name, ll: ll || c.stay.ll, d: d || "Your own idea.", url, s: slots, h: tm.h || (far ? Math.max(3, Math.round(10 - (2 * xMins) / 60)) + " h" : "2 h"),
+      t: guessTags(name + " " + (d || "")), x: far ? `About ${Math.round(dist)} km from ${c.name.replace(/ \(.*\)/, "")} — check the best train or bus in Google Maps (roughly ${dur(xMins)} each way).` : undefined, xMins: far ? xMins : undefined,
+      tip: how === "nopin" ? "No map pin, so travel times are estimated from the city centre. Paste the place's map link or coordinates to make them exact."
+        : how === "near" ? `Placed near ${src} — approximate. Paste its map link or coordinates for exact times.`
+        : `Your idea${src ? " (found on " + src + ")" : ""} — check opening hours and tickets before you go.` };
+  }
+  // When nothing is found: copy-the-coordinates tip, put it near a landmark, or add it without a pin
+  function ideaFallback(i, pend, intro) {
+    const c = CITIES[state.stops[i].city], q = pend.subj || pend.raw;
+    ideaSay(i, intro + COORD_TIP + nearPicker(i, "own", c, q) +
+      `<button type="button" class="btn small hotelpick" data-act="ownnopin" data-i="${i}">Add “${esc(q)}” without a map pin<br><span class="hint">Times will be estimated from the city centre</span></button>`);
+  }
   function addIdea(i) {
     const st = state.stops[i], cid = st.city, c = CITIES[cid];
     const raw = ($("#ownname-" + i).value || "").trim();
-    const say = (h) => { ownMsg[cid] = h; const m = $("#ownmsg-" + i); if (m) m.innerHTML = h; };
+    const say = (h) => ideaSay(i, h);
     if (!raw) { $("#ownname-" + i).focus(); return; }
     const tm = ideaTiming(raw), subj = ideaSubject(raw, c), fs = fold(subj);
+    // the selectors win over what we read from the words
+    const durSel = ($("#owndur-" + i) || {}).value || "auto", whenSel = ($("#ownwhen-" + i) || {}).value || "auto";
+    if (durSel === "full") { tm.slot = "full"; tm.h = null; } else if (durSel !== "auto") tm.h = durSel;
+    if (whenSel !== "auto" && durSel !== "full") tm.slot = whenSel;
+    const pend = (ownPending[i] = { raw, subj, tm });
     const pasted = parseLL(raw);
     const keyOf = (n) => fold(n.split(/[:(&—,]/)[0].replace(/^the /i, "").trim());
-    const finish = (p, msg) => {
-      if (p.custom) { (state.custom[cid] = state.custom[cid] || []).push(p); syncCustomPlaces(); }
-      if (st.places.indexOf(p.id) < 0) st.places.push(p.id);
-      ownFound[cid] = "";
-      persist(); renderStops();
-      say(msg + " Press “Build / update my itinerary” to fit it into your days. Add another idea, or tap Done.");
-      toast(`Added to ${c.name}: ${p.n}`);
-    };
+    const finish = (p, msg) => ideaFinish(i, p, msg);
     const makeCustom = (o) => Object.assign({ id: cid + "-u" + Date.now().toString(36), custom: true, c: "Check the official website", r: 2, idea: raw }, o);
+    if (isShortMapLink(raw)) { ideaFallback(i, pend, SHORT_LINK_HELP); return; }
     if (!fs && !pasted) { say("Tell us a place or activity, e.g. “Day trip to Florence” or “Sunset at Montmartre”."); return; }
     // 1. Another city in the planner → a day trip there
     const wordIn = (k, txt) => new RegExp("(^|[^a-z])" + k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "($|[^a-z])").test(txt);
-    const cityHit = Object.keys(CITIES).filter((id) => id !== cid).find((id) => {
+    let cityHit = pasted ? null : Object.keys(CITIES).filter((id) => id !== cid).find((id) => {
       const k = keyOf(CITIES[id].name), l = CITIES[id].local ? keyOf(CITIES[id].local) : "";
       if (k === "nice" || k === "split") return new RegExp("\\b" + k.charAt(0).toUpperCase() + k.slice(1) + "\\b").test(raw); // ordinary words unless capitalised
       return (k.length > 3 && wordIn(k, fs)) || (l.length > 3 && wordIn(l, fs));
     });
+    // …but only when it reads as a trip ("day trip to Florence", "visit Bruges", or just "Florence"), not "Little Venice" in London
+    const tripWords = /\b(day ?trip|trip|visit|excursion|outing|go(ing)? to|head(ing)? to|over to|train to|bus to|ferry to|boat to|day in|day at|see)\b/;
+    const bare = (x) => keyOf(x).replace(/\b(to|in|the|a|day|for)\b/g, " ").replace(/\s+/g, " ").trim();
+    if (cityHit && !tripWords.test(fs) && bare(fs) !== bare(CITIES[cityHit].name.replace(/ \(.*\)/, "")) && !(CITIES[cityHit].local && bare(fs) === bare(CITIES[cityHit].local))) cityHit = null;
     if (cityHit) {
       const T = CITIES[cityHit], tr = dayTripTransport(cid, cityHit), tops = T.places.filter((p) => p.r === 3 && !p.x && !p.insta).slice(0, 3).map((p) => p.n.split(/[:(]/)[0].trim());
       const hours = Math.max(3, Math.round(10 - (2 * tr.mins) / 60));
@@ -755,7 +794,7 @@
       return;
     }
     // 2. A place we already know — in this city, or elsewhere (then it's a day trip)
-    if (fs.length >= 4) {
+    if (!pasted && fs.length >= 4) {
       const pool = [];
       Object.keys(CITIES).forEach((id) => CITIES[id].places.forEach((p) => { if (!p.custom) pool.push({ id, p }); }));
       // every distinctive word you typed must appear in the place's name
@@ -772,21 +811,14 @@
         return;
       }
     }
-    // 3. Pasted map link or coordinates
-    const placeFromLL = (ll, name, d, url, src) => {
-      const dist = km(c.stay.ll, ll), far = dist > 15;
-      const xMins = Math.round(((dist * 1.3) / 60) * 60 + 30);
-      return makeCustom({ n: name, ll, d: d || "Your own idea.", url, s: tm.slot ? [tm.slot] : [far ? "full" : "e"], h: tm.h || (far ? Math.max(3, Math.round(10 - (2 * xMins) / 60)) + " h" : "2 h"),
-        t: guessTags(name + " " + (d || "")), x: far ? `About ${Math.round(dist)} km from ${c.name.replace(/ \(.*\)/, "")} — check the best train or bus in Google Maps (roughly ${dur(xMins)} each way).` : undefined, xMins: far ? xMins : undefined,
-        tip: `Your idea${src ? " (found on " + src + ")" : ""} — check opening hours and tickets before you go.` });
-    };
+    // 3. Pasted map link or coordinates (the name comes from the link or the words around it)
     if (pasted) {
       if (km(c.stay.ll, pasted) > 400) { say(`That location is ${Math.round(km(c.stay.ll, pasted))} km from ${esc(c.name)} — too far for a day trip. Check the link.`); return; }
-      const nm = raw.replace(/https?:\/\/\S+/g, "").replace(/-?\d+\.\d+\s*,\s*-?\d+\.\d+/, "").trim() || "My place";
-      finish(placeFromLL(pasted, nm, "", "", "your map link"), `✓ <b>${esc(nm)}</b> added at the location you pasted.`);
+      const nm = nameFromLink(raw, "My place (map pin)");
+      finish(ideaPlace(i, pend, pasted, nm, "", "", "your map link"), `✓ <b>${esc(nm)}</b> added at the location you pasted.`);
       return;
     }
-    // 4. Look it up: Wikipedia (description + location), then OpenStreetMap
+    // 4. Look it up: Wikipedia (description + location), then OpenStreetMap (pick from the matches)
     say("Looking it up…");
     const cityName = c.name.replace(/ \(.*\)/, "");
     const near = (ll) => ll && km(c.stay.ll, ll) < 400;
@@ -798,14 +830,19 @@
           .catch(() => null)), Promise.resolve(null));
       })
       .catch(() => null)
-      .then((wp) => wp || getJSON("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=en&q=" + encodeURIComponent(subj + ", " + cityName))
-        .then((list) => { let hit = (list || []).map((x) => ({ x, ll: [+x.lat, +x.lon] })).filter((o) => near(o.ll)).sort((a, b) => km(c.stay.ll, a.ll) - km(c.stay.ll, b.ll))[0];
-          return hit ? { n: subj.replace(/\b\w/g, (ch) => ch.toUpperCase()), d: "", ll: hit.ll, src: "OpenStreetMap" } : null; })
-        .catch(() => null))
       .then((f) => {
-        if (!f) { say(`Couldn't find “${esc(subj)}” near ${esc(cityName)}. Check the spelling, add more detail (e.g. the area), or paste a Google Maps link with your idea.`); return; }
-        const p = placeFromLL(f.ll, f.n, f.d ? firstSentence(f.d) : "", f.url, f.src);
-        finish(p, `✓ <b>${esc(p.n)}</b> — found on ${esc(f.src)}, ${esc(fromCentre(c, f.ll))}${p.x ? " (planned as a day trip)" : ""}.`);
+        if (f) {
+          const p = ideaPlace(i, pend, f.ll, f.n, firstSentence(f.d), f.url, f.src);
+          finish(p, `✓ <b>${esc(p.n)}</b> — found on Wikipedia, ${esc(fromCentre(c, f.ll))}${p.x ? " (planned as a day trip)" : ""}.`);
+          return;
+        }
+        geoSearch(c, subj, (rows, why) => {
+          if (!rows || !rows.length) { ideaFallback(i, pend, why ? `<p class="hint">${why}</p>` : notFoundMsg(subj, c, "places")); return; }
+          if (rows.length === 1) { const r = rows[0]; finish(ideaPlace(i, pend, r.ll, r.name, r.addr, "", "OpenStreetMap"), `✓ <b>${esc(r.name)}</b> — found on OpenStreetMap, ${esc(fromCentre(c, r.ll))}.`); return; }
+          ownResults[i] = rows;
+          say(`<p class="hint">Pick the right place:</p>` + rows.map((r, k) => `<button type="button" class="btn small hotelpick" data-act="ownpick" data-i="${i}" data-k="${k}"><b>${esc(r.name)}</b><br><span class="hint">${esc(r.addr)} · ${esc(fromCentre(c, r.ll))}</span></button>`).join("") +
+            nearPicker(i, "own", c, subj) + `<button type="button" class="btn small hotelpick" data-act="ownnopin" data-i="${i}">None of these — add “${esc(subj)}” without a map pin</button>`);
+        });
       });
   }
   // Guess tags from the description so trip style and your wishes apply to it too
@@ -820,45 +857,105 @@
     return out.filter((v, k, a) => a.indexOf(v) === k);
   }
   // Which hotel you're staying in: one of our three picks, your own (found on the map), or not decided yet
+  const hotelResults = {};
   function hotelRow(st, i) {
     const c = CITIES[st.city], h = state.hotels[st.city] || {}, sel = h.pick || "";
+    const set = sel === "custom" && h.ll;
     return `<div class="row hotelrow"><label class="hint lbl" for="hotel-${i}">🏨 Your hotel in ${esc(c.name)}:</label>
       <select id="hotel-${i}" data-act="hotel" data-i="${i}">
         <option value="">Not booked yet — plan from ${esc(c.stay.area)}</option>
-        ${c.hotels.map((x) => `<option value="${x.tier}" ${sel === x.tier ? "selected" : ""}>${PICK_LABEL[x.tier]}: ${esc(x.n)} · ${esc(priceText(c, x))}</option>`).join("")}
-        <option value="custom" ${sel === "custom" ? "selected" : ""}>Another hotel (type its name)…</option>
+        <optgroup label="Our picks">${c.hotels.map((x) => `<option value="${x.tier}" ${sel === x.tier ? "selected" : ""}>${PICK_LABEL[x.tier]}: ${esc(x.n)} · ${esc(priceText(c, x))}</option>`).join("")}</optgroup>
+        <option value="custom" ${sel === "custom" ? "selected" : ""}>${set ? "📍 " + esc(h.n) : "Another hotel… (search or map link)"}</option>
       </select>
       ${sel === "custom" ? `<div class="custom-hotel">
-        <input type="text" id="hotelname-${i}" data-act="hotelname" data-i="${i}" placeholder="Hotel name, e.g. Hotel Lutetia" value="${esc(h.n || "")}" aria-label="Your hotel's name" autocomplete="off">
-        <button type="button" class="btn small" data-act="hotelfind" data-i="${i}">📍 Find on map</button>
-        <input type="text" id="hotelll-${i}" data-act="hotelll" data-i="${i}" placeholder="…or paste a Google Maps link or coordinates" aria-label="Google Maps link or coordinates" autocomplete="off">
-        <span class="hint" id="hotelmsg-${i}">${h.ll ? `📍 Found: ${esc(h.area || h.n)} — ${esc(fromCentre(c, h.ll))}.` : "Type the name and tap Find on map, or paste a Google Maps link (Share → Copy link) or coordinates."}</span></div>` : ""}
+        <input type="text" id="hotelq-${i}" placeholder="Hotel name, address or map link" aria-label="Find your hotel in ${esc(c.name)}" autocomplete="off">
+        <button type="button" class="btn small" data-act="hotelfind" data-i="${i}">📍 Find</button>
+        <div class="hotelres" id="hotelres-${i}" aria-live="polite"></div></div>` : ""}
+      ${set ? `<p class="hint hotelset">📍 Planning from <b>${esc(h.n)}</b>${h.src === "near" ? ` (placed near ${esc(h.near)} — approximate; paste its map link or coordinates for exact times)` : ""} · ${esc(fromCentre(c, h.ll))} · <a href="https://www.google.com/maps/search/?api=1&query=${h.ll[0]},${h.ll[1]}" target="_blank" rel="noopener">check the pin ↗</a></p>` : ""}
     </div>`;
   }
-  // "@48.85,2.29", "!3d48.85!4d2.29", "?q=48.85,2.29" or plain "48.85, 2.29"
+  // Coordinates in pasted text: Google "!3d48.85!4d2.29" (exact pin) or "@48.85,2.29", Apple "ll=48.85,2.29", plain "48.85, 2.29"
   function parseLL(t) {
-    const m = String(t).match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || String(t).match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
-      String(t).match(/[?&](?:q|query|ll|destination)=(-?\d+\.\d+)(?:,|%2C)\s*(-?\d+\.\d+)/i) || String(t).match(/(-?\d{1,2}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/);
-    return m ? [+m[1], +m[2]] : null;
+    const str = String(t);
+    const m = str.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || str.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+      str.match(/[?&](?:q|query|ll|sll|destination|coordinate|center)=(-?\d+\.\d+)(?:,|%2C)\s*(-?\d+\.\d+)/i) || str.match(/(-?\d{1,2}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/);
+    if (!m) return null;
+    const a = +m[1], b = +m[2];
+    return a > 30 && a < 72 && b > -30 && b < 50 ? [a, b] : null;
   }
-  function setHotelMsg(i, html) { const m = $("#hotelmsg-" + i); if (m) m.innerHTML = html; }
-  // Look the hotel up on OpenStreetMap (Nominatim), keeping only results near the city
-  function findHotel(i) {
-    const st = state.stops[i], c = CITIES[st.city];
-    const name = ($("#hotelname-" + i).value || "").trim();
-    if (!name) { setHotelMsg(i, "Type your hotel's name first."); $("#hotelname-" + i).focus(); return; }
-    setHotelMsg(i, "Searching the map…");
+  // A place name from a pasted map link: Apple "?q=Name", Google ".../place/Name/@…"; otherwise the text around the link
+  function nameFromLink(text, fallback) {
+    const t = String(text);
+    let m = t.match(/[?&]q=([^&#]+)/);
+    if (m) { const v = decodeURIComponent(m[1].replace(/\+/g, " ")).trim(); if (v && !/^[-\d.,\s]+$/.test(v)) return v; }
+    m = t.match(/\/place\/([^/@?]+)/);
+    if (m) { const v = decodeURIComponent(m[1].replace(/\+/g, " ")).trim(); if (v && !parseLL(v)) return v; }
+    const rest = t.replace(/https?:\/\/\S+/g, "").replace(/-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+/g, "").trim();
+    return rest || fallback;
+  }
+  // Share links that hide the location behind a redirect a web page can't follow
+  const isShortMapLink = (q) => /(maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/kgs|maps\.apple\/p\/|share\.google)/i.test(q);
+  const COORD_TIP = `<p class="hint"><b>Most reliable:</b> in Google Maps or Apple Maps, press and hold on the exact spot (the hotel's entrance). The coordinates appear, e.g. <i>48.8510, 2.3430</i> — tap to copy them and paste them here. Or open the link in your browser and copy the long address from the address bar.</p>`;
+  const SHORT_LINK_HELP = `<p class="hint"><b>That's a short share link</b> (like maps.app.goo.gl/…). It doesn't contain the location — it only points to Google or Apple, and a web page can't follow it. Instead:</p>` + COORD_TIP;
+  // Put a hotel or place near a known landmark when it can't be found
+  function nearPicker(i, kind, c, q) {
+    const opts = [`<option value="stay">${esc(c.stay.area)} (recommended area)</option>`]
+      .concat(c.places.filter((p) => !p.custom && !p.x && !p.insta).map((p) => `<option value="${p.id}">${esc(p.n.split(/[:(]/)[0].trim())}</option>`)).join("");
+    return `<div class="nearpick"><label class="hint" for="${kind}near-${i}">Or put ${q ? "“" + esc(q) + "”" : "it"} near (approximate):</label>
+      <select id="${kind}near-${i}">${opts}</select><button type="button" class="btn small" data-act="${kind}near" data-i="${i}">Use this</button></div>`;
+  }
+  function nearChoice(i, kind) {
+    const c = CITIES[state.stops[i].city], v = $("#" + kind + "near-" + i).value;
+    const p = v === "stay" ? null : c.places.find((x) => x.id === v);
+    return { ll: p ? p.ll : c.stay.ll, label: p ? p.n.split(/[:(]/)[0].trim() : c.stay.area };
+  }
+  // Fetch JSON, giving up after 12 s so a slow connection can't leave a lookup hanging
+  function getJSON(u) {
+    const ctl = window.AbortController ? new AbortController() : null;
+    const t = setTimeout(() => ctl && ctl.abort(), 12000);
+    return fetch(u, Object.assign({ headers: { Accept: "application/json" } }, ctl ? { signal: ctl.signal } : {}))
+      .then((r) => { clearTimeout(t); if (!r.ok) throw new Error("http " + r.status); return r.json(); }, (e) => { clearTimeout(t); throw e; });
+  }
+  // OpenStreetMap search near the city, then a wider search if nothing turns up
+  function geoSearch(c, q, cb) {
     const [la, lo] = c.stay.ll;
-    const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&accept-language=en&q=" + encodeURIComponent(name + ", " + (c.local || c.name).replace(/ \(.*\)/, "")) +
-      `&viewbox=${lo - 0.5},${la + 0.35},${lo + 0.5},${la - 0.35}`;
-    fetch(url, { headers: { Accept: "application/json" } }).then((r) => r.json()).then((list) => {
-      const near = (list || []).map((x) => ({ x, d: km(c.stay.ll, [+x.lat, +x.lon]) })).filter((o) => o.d < 45).sort((a, b) => a.d - b.d);
-      if (!near.length) { setHotelMsg(i, `Couldn't find “${esc(name)}” near ${esc(c.name)}. Check the spelling, add the street name, or paste a Google Maps link instead.`); return; }
-      const best = near.find((o) => /hotel|guest_house|hostel|apartment|motel|tourism/i.test(o.x.type + " " + o.x.category)) || near[0];
-      state.hotels[st.city] = { pick: "custom", n: name, ll: [+best.x.lat, +best.x.lon], area: best.x.display_name.split(",").slice(0, 3).join(",").trim() };
-      persist(); renderStops();
-      toast(`Found ${name}. Press “Build / update my itinerary” to re-plan ${c.name} from it.`);
-    }).catch(() => setHotelMsg(i, "The map search needs internet. You can paste a Google Maps link or coordinates instead."));
+    const base = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=en";
+    const near = base + "&bounded=1&viewbox=" + [lo - 0.5, la + 0.35, lo + 0.5, la - 0.35].join(",") + "&q=" + encodeURIComponent(q);
+    const wide = base + "&q=" + encodeURIComponent(q + ", " + (c.local || c.name).replace(/ \(.*\)/, "") + ", " + ctry(c.id).name);
+    let done = false;
+    const finish = (rows, why) => { if (done) return; done = true; cb(rows, why); };
+    setTimeout(() => finish(null, "The search took too long."), 15000);
+    const get = (u) => fetch(u, { headers: { Accept: "application/json" } }).then((r) => r.json());
+    const tidy = (rows) => (rows || []).map((r) => ({ name: r.name || String(r.display_name).split(",")[0], addr: String(r.display_name).split(",").slice(0, 4).join(","), ll: [+r.lat, +r.lon] })).filter((r) => km(r.ll, c.stay.ll) < 80);
+    get(near).then((rows) => { const a = tidy(rows); return a.length ? a : new Promise((res) => setTimeout(res, 1100)).then(() => get(wide)).then(tidy); })
+      .then((a) => finish(a, null))
+      .catch(() => finish(null, "Couldn't reach the map search (it needs an internet connection)."));
+  }
+  const notFoundMsg = (q, c, what) => `<p class="hint">No match for “${esc(q)}” on OpenStreetMap near ${esc(c.name)}. Many ${what} aren't listed there, or are listed under another name — try the official name, the street address, or paste its map link.</p>`;
+  // Save the traveller's own hotel and re-plan straight away
+  function setHotel(i, h) {
+    const c = CITIES[state.stops[i].city], d = km(h.ll, c.stay.ll);
+    if (d > 80) { toast(`That spot is ${Math.round(d)} km from ${c.name}. Check it's the right place, or paste the hotel's map link.`); return; }
+    state.hotels[c.id] = Object.assign({ pick: "custom" }, h);
+    persist(); renderStops();
+    if (d > 25) toast(`Saved, but it's ${Math.round(d)} km from central ${c.name}: double-check the pin.`);
+    if (lastPlan) { generate(false); if (d <= 25) toast(`Plan updated: times and directions in ${c.name} now start from ${h.n}.`); }
+    else if (d <= 25) toast(`${h.n} saved. Press “Build / update my itinerary” to plan from it.`);
+  }
+  function findHotel(i) {
+    const c = CITIES[state.stops[i].city];
+    const q = ($("#hotelq-" + i).value || "").trim();
+    const box = $("#hotelres-" + i);
+    if (!q) { toast("Type the hotel's name or address, or paste its map link or coordinates."); return; }
+    const ll = parseLL(q);
+    if (ll) { setHotel(i, { n: nameFromLink(q, "My hotel (map pin)"), ll, area: "map pin", src: "pin" }); return; }
+    if (isShortMapLink(q)) { box.innerHTML = SHORT_LINK_HELP + nearPicker(i, "hotel", c, ""); return; }
+    box.innerHTML = `<p class="hint">Searching OpenStreetMap near ${esc(c.name)}…</p>`;
+    geoSearch(c, q, (rows, why) => {
+      if (!rows || !rows.length) { box.innerHTML = (why ? `<p class="hint">${why}</p>` : notFoundMsg(q, c, "hotels")) + COORD_TIP + nearPicker(i, "hotel", c, q); return; }
+      hotelResults[i] = rows;
+      box.innerHTML = `<p class="hint">Pick your hotel:</p>` + rows.map((r, k) => `<button type="button" class="btn small hotelpick" data-act="hotelpick" data-i="${i}" data-k="${k}"><b>${esc(r.name)}</b><br><span class="hint">${esc(r.addr)} · ${esc(fromCentre(c, r.ll))}</span></button>`).join("") + nearPicker(i, "hotel", c, q);
+    });
   }
 
   // Last leg, when you fly home from a city that isn't your last stop
@@ -963,9 +1060,14 @@
       if ((act === "up" || act === "down") && state.optimise && !state.keepOrder) { state.keepOrder = true; toast("Your city order is kept; transport is still recommended. Tick the box in step 4 again to re-sort the cities."); }
       if (act === "quick") { addCity(b.dataset.city); return; }
       if (act === "hotelfind") { findHotel(i); return; }
+      if (act === "hotelpick") { const r = (hotelResults[i] || [])[+b.dataset.k]; if (r) setHotel(i, { n: r.name, ll: r.ll, area: r.addr, src: "search" }); return; }
+      if (act === "hotelnear") { const q = ($("#hotelq-" + i).value || "").trim(), nc = nearChoice(i, "hotel"); setHotel(i, { n: q && !isShortMapLink(q) ? q : "My hotel", ll: nc.ll, area: "near " + nc.label, src: "near", near: nc.label }); return; }
       if (act === "ownopen") { ownOpen[state.stops[i].city] = true; renderStops(); const n = $("#ownname-" + i); if (n) n.focus(); return; }
       if (act === "ownclose") { const cid = state.stops[i].city; ownOpen[cid] = false; delete ownFound[cid]; delete ownMsg[cid]; renderStops(); return; }
       if (act === "ownfind") { addIdea(i); return; }
+      if (act === "ownpick") { const r = (ownResults[i] || [])[+b.dataset.k], pend = ownPending[i]; if (r && pend) ideaFinish(i, ideaPlace(i, pend, r.ll, r.name, r.addr, "", "OpenStreetMap"), `✓ <b>${esc(r.name)}</b> added.`); return; }
+      if (act === "ownnear") { const pend = ownPending[i]; if (!pend) return; const nc = nearChoice(i, "own"), nm = pend.raw.trim().replace(/^./, (ch) => ch.toUpperCase()); ideaFinish(i, ideaPlace(i, pend, nc.ll, nm, "", "", nc.label, "near"), `✓ <b>${esc(nm)}</b> added near ${esc(nc.label)} (approximate).`); return; }
+      if (act === "ownnopin") { const pend = ownPending[i]; if (!pend) return; const nm = pend.raw.trim().replace(/^./, (ch) => ch.toUpperCase()); ideaFinish(i, ideaPlace(i, pend, null, nm, "", "", "", "nopin"), `✓ <b>${esc(nm)}</b> added without a map pin — times are estimated from the city centre.`); return; }
       if (act === "up" && i > 0) [state.stops[i - 1], state.stops[i]] = [state.stops[i], state.stops[i - 1]];
       else if (act === "down" && i < state.stops.length - 1) [state.stops[i + 1], state.stops[i]] = [state.stops[i], state.stops[i + 1]];
       else if (act === "addtop") {
@@ -1008,16 +1110,6 @@
         return;
       }
       if (t.id && /^ownname-\d+$/.test(t.id)) { ownFound[state.stops[+t.id.split("-")[1]].city] = t.value; return; }
-      if (t.dataset.act === "hotelname") { const cid = state.stops[+t.dataset.i].city, h = state.hotels[cid]; if (h) { if (h.n !== t.value.trim()) h.ll = null; h.n = t.value.trim(); persist(); setHotelMsg(+t.dataset.i, "Now tap Find on map, or paste a Google Maps link."); } return; }
-      if (t.dataset.act === "hotelll") {
-        const i = +t.dataset.i, cid = state.stops[i].city, h = state.hotels[cid] || (state.hotels[cid] = { pick: "custom" });
-        const ll = parseLL(t.value);
-        if (!ll) { setHotelMsg(i, /goo\.gl|maps\.app/.test(t.value) ? "Short links can't be read. In Google Maps, long-press your hotel's pin and copy the coordinates shown at the top, then paste them here." : "That doesn't look like a Google Maps link or coordinates (e.g. 48.8510, 2.3430)."); return; }
-        if (km(CITIES[cid].stay.ll, ll) > 45) { setHotelMsg(i, `Those coordinates are ${Math.round(km(CITIES[cid].stay.ll, ll))} km from ${esc(CITIES[cid].name)} — please check them.`); return; }
-        h.ll = ll; h.n = h.n || ($("#hotelname-" + i).value || "").trim() || "My hotel"; h.area = "pinned location";
-        persist(); renderStops(); toast(`Location saved. Press “Build / update my itinerary” to re-plan ${CITIES[cid].name} from it.`);
-        return;
-      }
       if (t.id === "audOn" || t.id === "eurAud") { if (t.id === "eurAud") state.eurAudSet = Math.abs(parseFloat(t.value) - FX.eurAud) > 0.004; readForm(); persist(); renderStops(); if (lastPlan) generate(false); return; }
       if (t.dataset.act === "place" && t.value) { state.stops[+t.dataset.i].places.push(t.value); persist(); renderStops(); return; }
       if (t.dataset.act === "legdep" || t.dataset.act === "legarr" || t.dataset.act === "legmode") {
@@ -1040,7 +1132,7 @@
     $("#wishes").addEventListener("input", () => { showWishes(); state.wishes = $("#wishes").value.trim(); persist(); renderStops(); });
     $("#planner").addEventListener("keydown", (e) => {
       if (e.key !== "Enter" || !e.target.id) return;
-      const m = e.target.id.match(/^(ownname|hotelname)-(\d+)$/);
+      const m = e.target.id.match(/^(ownname|hotelq)-(\d+)$/);
       if (m) { e.preventDefault(); if (m[1] === "ownname") addIdea(+m[2]); else findHotel(+m[2]); }
     });
     $("#planner").addEventListener("submit", (e) => {
@@ -1478,6 +1570,144 @@
   }
 
   // "At a glance": one row per day, built from each day's (possibly edited) timeline
+  /* ---------- weather: typical (climate averages) for each date, or a live forecast within ~2 weeks ---------- */
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const isoDate = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  // Monthly averages sit mid-month; days in between are blended with the neighbouring month
+  function typicalFor(cid, date) {
+    const c = CLIMATE[cid];
+    if (!c || !date) return null;
+    const m = date.getMonth(), dim = new Date(date.getFullYear(), m + 1, 0).getDate();
+    const pos = (date.getDate() - 15) / dim, f = Math.abs(pos), m2 = pos >= 0 ? (m + 1) % 12 : (m + 11) % 12;
+    const mix = (a) => a[m] * (1 - f) + a[m2] * f;
+    return { hi: mix(c.hi), lo: mix(c.lo), rain: mix(c.rain) / 30, mtn: c.mtn || "" };
+  }
+  const forecastCache = {};
+  const wxIcon = (code) => (code === 0 ? "☀️" : code <= 2 ? "🌤" : code === 3 ? "☁️" : code === 45 || code === 48 ? "🌫" : code >= 71 && code <= 77 ? "❄️" : code >= 95 ? "⛈" : code >= 80 ? "🌦" : code >= 51 ? "🌧" : "🌤");
+  const climIcon = (t) => (t.lo <= -3 ? "🥶" : t.rain >= 0.45 ? "🌦" : t.hi >= 30 ? "☀️" : t.hi <= 8 ? "🧥" : "🌤");
+  function weatherFor(cid, date) {
+    if (!date) return null;
+    const f = forecastCache[cid + "|" + isoDate(date)];
+    const mtn = (CLIMATE[cid] && CLIMATE[cid].mtn) || "";
+    if (f) return { src: "forecast", hi: f.hi, lo: f.lo, rain: f.pp / 100, icon: wxIcon(f.code), mtn };
+    const t = typicalFor(cid, date);
+    return t ? Object.assign({ src: "typical", icon: climIcon(t) }, t) : null;
+  }
+  const deg = (v) => Math.round(v) + "°C";
+  const rainWords = (p) => (p >= 0.6 ? "rain likely" : p >= 0.35 ? "showers possible" : p >= 0.15 ? "small chance of rain" : "rain unlikely");
+  // What to wear for a day's high, low and chance of rain
+  function attire(hi, lo, rain) {
+    const out = [];
+    if (hi >= 30) out.push("light, loose, breathable clothes (thin long sleeves keep you covered and cool)", "sun hat, sunglasses and SPF 50");
+    else if (hi >= 24) out.push("light clothes", "a thin layer for evenings and air-conditioning");
+    else if (hi >= 17) out.push("long sleeves", "a light jacket or cardigan");
+    else if (hi >= 10) out.push("a sweater or fleece", "a medium jacket");
+    else if (hi >= 4) out.push("a warm coat", "layers with a thermal top", "a scarf");
+    else out.push("a down jacket", "thermal underwear", "hat, gloves and scarf", "warm, grippy boots for icy pavements");
+    if (lo <= 0 && hi >= 4) out.push("gloves and a hat for mornings and evenings");
+    if (rain >= 0.4) out.push("a compact umbrella or rain jacket", "water-resistant shoes");
+    else if (rain >= 0.2) out.push("a compact umbrella");
+    return out;
+  }
+  const attireShort = (hi, lo, rain) => {
+    const b = hi >= 30 ? "Light & breathable, sun hat" : hi >= 24 ? "Light clothes + thin layer" : hi >= 17 ? "Long sleeves + light jacket" : hi >= 10 ? "Sweater + jacket" : hi >= 4 ? "Warm coat, layers, scarf" : "Down jacket, thermals, hat & gloves";
+    return b + (rain >= 0.4 ? " · rain gear" : rain >= 0.2 ? " · umbrella" : "");
+  };
+  // Extra items for what's planned that day
+  const HIGH_PLACES = /jungfrau|titlis|pilatus|schilthorn|grindelwald first|harder kulm|rigi|zugspitze|uetliberg|trebević|holmenkollen|fløyen|dajti/i;
+  function dayExtras(day) {
+    const ps = day.slots.filter((s) => s.type === "act").map((s) => s.p), out = [];
+    if (ps.some((p) => p.t.indexOf("adventure") >= 0 || p.t.indexOf("nature") >= 0 || p.s.indexOf("full") >= 0)) out.push("comfortable, grippy walking shoes (cobblestones and hills)");
+    if (ps.some((p) => HIGH_PLACES.test(p.n))) out.push("a warm jacket, gloves and sunglasses for the mountain top");
+    if (ps.some((p) => /mosque|hagia sophia|mezquita/i.test(p.n))) out.push("modest clothes for the mosque (women: headscarf, arms and legs covered)");
+    if (ps.some((p) => /basilica|cathedral|church|vatican|duomo|st peter|st mark|sagrada|abbey|monastery/i.test(p.n))) out.push("shoulders and knees covered for churches");
+    if (ps.some((p) => /cruise|boat|ferry|gondola|lagoon|canal tour|island/i.test(p.n))) out.push("a light layer for the breeze on the water");
+    if (ps.some((p) => /bath|lagoon|spa\b|hammam|beach|swim/i.test(p.n + " " + p.d))) out.push("swimwear (a burkini is fine at most pools — check locally)");
+    return out;
+  }
+  function wxData(day) {
+    const w = weatherFor(day.cityId, day.date);
+    if (!w) return null;
+    return { w, am: w.lo + 0.35 * (w.hi - w.lo), night: w.lo + 0.25 * (w.hi - w.lo), wear: attire(w.hi, w.lo, w.rain).concat(dayExtras(day)) };
+  }
+  function wxLine(day) {
+    const x = wxData(day);
+    if (!x) return `<div class="wx muted"><span class="wx-ic">🌤</span><span>Add a start date (step 4) to see the expected weather and what to wear each day.</span></div>`;
+    const w = x.w, high = day.slots.some((s) => s.type === "act" && HIGH_PLACES.test(s.p.n));
+    return `<div class="wx"><span class="wx-ic" aria-hidden="true">${w.icon}</span><span><b>${w.src === "forecast" ? "Forecast" : "Typical"} for ${fmtDate(day.date)} in ${esc(day.city.name)}:</b> morning ~${deg(x.am)}, afternoon ~${deg(w.hi)}, night ~${deg(x.night)} · ${rainWords(w.rain)}${w.src === "forecast" ? ' <span class="badge rec">live forecast</span>' : ""}${high && w.mtn ? `<br>⛰ ${esc(w.mtn)}` : ""}<br><b>Wear:</b> ${esc(x.wear.join(", "))}.</span></div>`;
+  }
+  const wxPlain = (day) => { const x = wxData(day); return x ? `${x.w.src === "forecast" ? "Forecast" : "Typical"}: morning ~${deg(x.am)}, afternoon ~${deg(x.w.hi)}, night ~${deg(x.night)}, ${rainWords(x.w.rain)}. Wear: ${x.wear.join(", ")}.` : ""; };
+  const wxCell = (d) => { const w = weatherFor(d.cityId, d.date); return w ? `${w.icon} ${Math.round(w.hi)}° / ${Math.round(w.lo)}°` : "—"; };
+
+  // Consecutive days in the same city
+  function citySegments(plan) {
+    const segs = [];
+    plan.days.forEach((d) => { const last = segs[segs.length - 1]; if (last && last.cid === d.cityId) last.days.push(d); else segs.push({ cid: d.cityId, city: d.city, days: [d] }); });
+    return segs;
+  }
+  function segWeather(seg) {
+    const ws = seg.days.map((d) => weatherFor(d.cityId, d.date)).filter(Boolean);
+    if (!ws.length) return null;
+    const avg = (k) => ws.reduce((a, w) => a + w[k], 0) / ws.length;
+    const lo = Math.min.apply(null, ws.map((w) => w.lo)), rain = Math.max.apply(null, ws.map((w) => w.rain));
+    const extras = [];
+    seg.days.forEach((d) => dayExtras(d).forEach((e) => { if (extras.indexOf(e) < 0) extras.push(e); }));
+    return { hi: avg("hi"), lo, rain, forecast: ws.some((w) => w.src === "forecast"), mtn: ws[0].mtn, pack: attire(avg("hi"), lo, rain).concat(extras) };
+  }
+
+  function weatherHTML(plan) {
+    const segs = citySegments(plan);
+    const dated = !!state.start;
+    const range = (seg) => seg.days.length > 1 ? `${fmtDate(seg.days[0].date)} – ${fmtDate(seg.days[seg.days.length - 1].date)}` : fmtDate(seg.days[0].date);
+    const summary = dated ? `<section class="panel"><h3>Your trip at a glance</h3>
+      <p class="hint">Typical weather for your dates from long-term averages${segs.some((s) => (segWeather(s) || {}).forecast) ? ", with live forecasts where your dates are within about two weeks" : ""}. Check a forecast a few days before you go.</p>
+      <div class="tbl-wrap"><table class="wxsum"><thead><tr><th>City</th><th>Dates</th><th>Day / night</th><th>Rain</th><th>What to pack</th></tr></thead><tbody>
+      ${segs.map((s) => { const w = segWeather(s); return w ? `<tr><td><b>${flagOf(s.cid)} ${esc(s.city.name)}</b></td><td class="g-date">${range(s)}</td><td>${deg(w.hi)} / ${deg(w.lo)}</td><td>${rainWords(w.rain)}</td><td>${esc(w.pack.join(", "))}${w.mtn ? `<br><span class="hint">⛰ ${esc(w.mtn)}</span>` : ""}</td></tr>` : ""; }).join("")}
+      </tbody></table></div></section>`
+      : `<section class="panel"><h3>Your trip at a glance</h3><p>Add a <b>start date</b> in step 4 to see the weather for your dates, day by day, with what to wear. Until then, the tables below show each city month by month.</p></section>`;
+    const tripMonths = (cid) => { const o = {}; plan.days.forEach((d) => { if (d.cityId === cid && d.date) o[d.date.getMonth()] = 1; }); return o; };
+    const cities = segs.map((x) => x.cid).filter((v, i, a) => a.indexOf(v) === i);
+    const panels = cities.map((cid) => {
+      const c = CLIMATE[cid], tm = tripMonths(cid);
+      if (!c) return "";
+      return `<section class="panel"><h3>${flagOf(cid)} ${esc(CITIES[cid].name)} <span class="loc">${esc(ctry(cid).name)}</span></h3>
+        <ul>${(c.notes || []).map(([ms, t]) => `<li><b>${ms.map((m) => MONTHS[m - 1]).join(", ")}:</b> ${esc(t)}</li>`).join("")}${c.mtn ? `<li><b>⛰ Up high:</b> ${esc(c.mtn)}</li>` : ""}</ul>
+        <div class="tbl-wrap"><table class="wxmon"><thead><tr><th>Month</th><th>High / low</th><th>Rainy days</th><th>What to wear</th></tr></thead><tbody>
+        ${c.hi.map((hi, m) => `<tr class="${tm[m] ? "trip" : ""}"><td><b>${MONTHS[m]}</b>${tm[m] ? ' <span class="badge pick">your trip</span>' : ""}</td><td>${hi}° / ${c.lo[m]}°C</td><td>${c.rain[m]}</td><td>${esc(attireShort(hi, c.lo[m], c.rain[m] / 30))}</td></tr>`).join("")}
+        </tbody></table></div></section>`;
+    }).join("");
+    const always = `<section class="panel"><h3>Pack for every city</h3><ul>
+      <li><b>Comfortable, grippy walking shoes</b> — 15–25,000 steps a day on cobblestones, stairs and hills.</li>
+      <li><b>Modest clothing</b> for churches and mosques: shoulders and knees covered (the Vatican, St Mark's and Sagrada Família turn people away); a headscarf for women in mosques.</li>
+      <li><b>Layers</b> — mornings and evenings are cooler than the afternoon, and trains and museums are air-conditioned.</li>
+      <li><b>A compact umbrella</b> — it doubles as a sunshade in southern summers.</li>
+      <li>Sunscreen, sunglasses, a refillable bottle (tap water is safe almost everywhere), and a small day bag that zips (pickpockets).</li></ul>
+      <p class="hint">Temperatures are long-term averages for each date (a typical day), not forecasts — real days can be several degrees warmer or colder. Southern Europe's summer heatwaves now often exceed these averages by 5–10°C.</p></section>`;
+    return summary + panels + always;
+  }
+
+  // Live forecast (Open-Meteo, free, no key) when the trip starts within ~2 weeks
+  const forecastAsked = {};
+  function fetchForecasts(plan) {
+    if (window.NO_PRINT || !plan || !state.start || typeof fetch !== "function") return;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const soon = plan.days.filter((d) => d.date && (d.date - today) / 86400000 >= -1 && (d.date - today) / 86400000 <= 15);
+    const cids = soon.map((d) => d.cityId).filter((v, i, a) => a.indexOf(v) === i && !forecastAsked[v]);
+    if (!cids.length) return;
+    let pending = cids.length, added = false;
+    cids.forEach((cid) => {
+      forecastAsked[cid] = true;
+      const ll = CITIES[cid].stay.ll;
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${ll[0]}&longitude=${ll[1]}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=auto&forecast_days=16`)
+        .then((r) => r.json()).then((j) => {
+          const d = j && j.daily;
+          if (!d || !d.time) return;
+          d.time.forEach((t, k) => { if (d.temperature_2m_max[k] != null) { forecastCache[cid + "|" + t] = { hi: d.temperature_2m_max[k], lo: d.temperature_2m_min[k], pp: d.precipitation_probability_max[k] || 0, code: d.weather_code[k] }; added = true; } });
+        }).catch(() => { /* offline or blocked: averages stay */ })
+        .then(() => { if (--pending === 0 && added && lastPlan === plan) generate(false); });
+    });
+  }
+
   // One row per day for the At a glance table — interactive on screen, plain in the printout/PDF
   function glanceRows(plan, print) {
     const show = { sight: 1, travel: 1, flight: 1, custom: 1, shop: 0, rest: 1, free: 1, prayer: 0, meal: 0, cafe: 0, photo: 0, breakfast: 0, hotel: 0 };
@@ -1494,13 +1724,14 @@
       const kind = KIND[d.kind] ? `<span class="kind-chip">${KIND[d.kind]}</span>` : "";
       if (print) {
         const h = hotelOf(d.cityId);
-        return `<tr><td><b>${i + 1}</b></td><td>${d.date ? fmtDate(d.date) : "—"}</td><td><b class="nowrap">${flagOf(d.cityId)} ${esc(d.city.name)}</b>${KIND[d.kind] ? `<br><i>${KIND[d.kind]}</i>` : ""}</td>
+        return `<tr><td><b>${i + 1}</b></td><td>${d.date ? fmtDate(d.date) : "—"}</td><td class="nowrap">${wxCell(d)}</td><td><b class="nowrap">${flagOf(d.cityId)} ${esc(d.city.name)}</b>${KIND[d.kind] ? `<br><i>${KIND[d.kind]}</i>` : ""}</td>
           <td>${cell(part(0, 12 * 60 + 30))}</td><td>${cell(cont(12 * 60 + 30).concat(part(12 * 60 + 30, 18 * 60 + 30)))}</td><td>${cell(part(18 * 60 + 30, 24 * 60))}</td>
           <td>${d.kind === "depart" ? "✈ Home" : h.chosen ? esc(h.n) : esc(d.city.name)}</td></tr>`;
       }
       return `<tr data-goto="day-${i + 1}" tabindex="0" role="link" aria-label="Go to day ${i + 1}">
         <td class="g-day"><b>${i + 1}</b></td>
         <td class="g-date">${d.date ? fmtDate(d.date) : "—"}</td>
+        <td class="g-wx">${wxCell(d)}</td>
         <td><b>${esc(d.city.name)}</b> ${ctry(d.cityId).flag}${kind}${isEdited(d, i) ? '<span class="kind-chip edited">edited</span>' : ""}</td>
         <td>${cell(part(0, 12 * 60 + 30))}</td><td>${cell(cont(12 * 60 + 30).concat(part(12 * 60 + 30, 18 * 60 + 30)))}</td><td>${cell(part(18 * 60 + 30, 24 * 60))}</td>
         <td class="g-sleep">${d.kind === "depart" ? "✈ Home" : hotelOf(d.cityId).chosen ? esc(hotelOf(d.cityId).n) : esc(d.city.name)}</td></tr>`;
@@ -1513,7 +1744,7 @@
     return `<section class="panel glance">
       <h3>At a glance</h3>
       ${state.start ? "" : `<p class="hint">Add a start date (step 4) to see the dates and weekdays here.</p>`}
-      <div class="tbl-wrap"><table><thead><tr><th>Day</th><th>Date</th><th>City</th><th>Morning</th><th>Afternoon</th><th>Evening</th><th>Sleep in</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Day</th><th>Date</th><th>Weather</th><th>City</th><th>Morning</th><th>Afternoon</th><th>Evening</th><th>Sleep in</th></tr></thead><tbody>${rows}</tbody></table></div>
       <p class="hint">Tap a day to jump to its hour-by-hour plan, where you can edit times and add or remove anything.</p>
     </section>`;
   }
@@ -1635,7 +1866,7 @@
     </div>`;
 
     const tabs = `<div class="tabs" role="tablist">
-      ${[["plan", "Day by day"], ["map", "Map"], ["stay", "Hotels, food & cafés"], ["prep", "Before you go"], ["talk", "Phrases"]].map(([id, l]) => `<button type="button" role="tab" id="tab-${id}" aria-selected="${currentTab === id}" aria-controls="pane-${id}" data-tab="${id}">${l}</button>`).join("")}
+      ${[["plan", "Day by day"], ["map", "Map"], ["wx", "Weather & what to wear"], ["stay", "Hotels, food & cafés"], ["prep", "Before you go"], ["talk", "Phrases"]].map(([id, l]) => `<button type="button" role="tab" id="tab-${id}" aria-selected="${currentTab === id}" aria-controls="pane-${id}" data-tab="${id}">${l}</button>`).join("")}
     </div>`;
 
     // Day by day
@@ -1652,6 +1883,7 @@
       html += `<article class="day" id="day-${i + 1}" data-cur="${curOf(day.cityId)}">
         <div class="day-num"><div class="stamp">${i + 1}</div><small>Day ${i + 1}${day.date ? "<br>" + fmtDate(day.date) : ""}</small></div>
         <div class="day-body"><h4 class="day-title"><span class="dflag">${flagOf(day.cityId)}</span> ${esc(dayTitle(day))}${KIND[day.kind] ? `<span class="kind">${KIND[day.kind]}</span>` : ""}</h4>
+          ${wxLine(day)}
           <div class="tl" id="tl-${i}">${timelineHTML(i)}</div>
           <h5 class="details-h">Details, directions, halal food & photo spots</h5>
           ${day.slots.map((s) => slotHTML(s, day)).join("")}
@@ -1664,6 +1896,7 @@
     out.innerHTML = hdr + tabs +
       `<div id="pane-plan" role="tabpanel" aria-labelledby="tab-plan" class="out" ${currentTab !== "plan" ? "hidden" : ""}><h2 class="print-only">Day-by-day itinerary</h2>${html}</div>
        <div id="pane-map" role="tabpanel" aria-labelledby="tab-map" class="out" ${currentTab !== "map" ? "hidden" : ""}><h2 class="print-only">Map</h2>${mapPaneHTML(plan)}</div>
+       <div id="pane-wx" role="tabpanel" aria-labelledby="tab-wx" class="out" ${currentTab !== "wx" ? "hidden" : ""}><h2 class="print-only">Weather & what to wear</h2>${weatherHTML(plan)}</div>
        <div id="pane-stay" role="tabpanel" aria-labelledby="tab-stay" class="out" ${currentTab !== "stay" ? "hidden" : ""}><h2 class="print-only">Hotels, halal food, cafés & photo spots</h2>${stayHTML(ids)}</div>
        <div id="pane-prep" role="tabpanel" aria-labelledby="tab-prep" class="out" ${currentTab !== "prep" ? "hidden" : ""}><h2 class="print-only">Before you go</h2>${prepHTML(routeIds, zones)}</div>
        <div id="pane-talk" role="tabpanel" aria-labelledby="tab-talk" class="out" ${currentTab !== "talk" ? "hidden" : ""}><h2 class="print-only">Phrases</h2>${phrasesHTML(langs)}</div>
@@ -1673,6 +1906,7 @@
     plan.days.forEach((d, i) => { if (isEdited(d, i)) { const pids = new Set(timelineFor(d, i).map((x) => x.pid).filter(Boolean)); document.querySelectorAll(`#day-${i + 1} .slot[data-pid]`).forEach((sl) => (sl.hidden = !pids.has(sl.dataset.pid))); } });
     if (currentTab === "map") showStreetMap();
     lastPrintArgs = { ids, routeIds, arrId, depId, langs, zones, startD, endD, notes };
+    fetchForecasts(plan);
     buildPrintView(plan, lastPrintArgs);
     if (scroll) out.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -2424,7 +2658,7 @@
 
     // 1. Overview: the At a glance table (long trips continue on the next page), then the trip notes on their own page
     const gRows = glanceRows(plan, true), PER = 16;
-    const gTable = (rows) => `<table class="pv-tbl pv-glance"><thead><tr><th>Day</th><th>Date</th><th>City</th><th>Morning</th><th>Afternoon</th><th>Evening</th><th>Sleep in</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
+    const gTable = (rows) => `<table class="pv-tbl pv-glance"><thead><tr><th>Day</th><th>Date</th><th>Weather</th><th>City</th><th>Morning</th><th>Afternoon</th><th>Evening</th><th>Sleep in</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
     const chunks = [];
     for (let k = 0; k < gRows.length; k += PER) chunks.push(gRows.slice(k, k + PER));
     // avoid a lonely last page of one or two days
@@ -2451,6 +2685,7 @@
       const mine = hotelOf(d.cityId);
       pages.push(`<div data-cur="${curOf(d.cityId)}">${head(`Day ${i + 1} · ${esc(d.city.name)} ${ctry(d.cityId).flag}`, (d.date ? fmtDate(d.date) + " · " : "") + (KIND[d.kind] || "Sightseeing"))}
         <p class="pv-sub">${esc(dayTitle(d))}</p>
+        ${d.date ? `<p class="pv-meta">${(weatherFor(d.cityId, d.date) || {}).icon || "🌤"} ${esc(wxPlain(d))}</p>` : ""}
         ${firstInCity ? `<p class="pv-stay">${mine.chosen ? `<b>Your hotel:</b> ${esc(mine.n)}.` : `<b>Stay:</b> ${esc(d.city.stay.area)} — e.g. ${esc(hotel.n)}.`} <b>Halal near hotel:</b> ${esc(eatNear(d.city, mine.ll, 2).located.map((h) => h.n).join("; ") || d.city.halalTip)} <b>Cafés:</b> ${esc((d.city.cafes || []).slice(0, 3).map((c) => c.n).join("; "))}</p>` : ""}
         <table class="pv-tl"><tbody>${timelineFor(d, i).map((x) => `<tr class="k-${x.k}"><td class="pv-t">${hhmm(x.start)}${x.end > x.start ? "–" + hhmm(x.end) : ""}</td><td>${x.icon || TL_ICON[x.k] || ""} <b>${esc(x.title)}</b>${x.note ? ` <span class="pv-meta">— ${esc(x.note)}</span>` : ""}</td></tr>`).join("")}</tbody></table>
         <h2>Details & directions</h2>
@@ -2470,7 +2705,8 @@
           ${ct.mosques.length ? `<p><b>Mosque:</b> ${ct.mosques.map((m) => esc(m.n)).join("; ")}</p>` : ""}
           <p><b>Cafés:</b> ${(ct.cafes || []).map((x) => esc(x.n)).join("; ")}</p>
           <p><b>Photo spots:</b> ${(ct.insta || []).map((x) => `${esc(x.n)} (${esc(x.when)})`).join("; ")}</p>
-          <p><b>Getting around:</b> ${esc(firstSentence(ct.getAround))}</p></section>`; }).join("")}
+          <p><b>Getting around:</b> ${esc(firstSentence(ct.getAround))}</p>
+          ${(() => { const sg = citySegments(plan).filter((x) => x.cid === id).map(segWeather).filter(Boolean)[0]; return sg ? `<p><b>Weather on your dates:</b> about ${deg(sg.hi)} by day, ${deg(sg.lo)} at night, ${rainWords(sg.rain)}. <b>Pack:</b> ${esc(sg.pack.slice(0, 4).join(", "))}.</p>` : ""; })()}</section>`; }).join("")}
         <section><h2>Visa & entry</h2>
           ${isAU() ? `<p>Australian passport: Schengen visa-free 90 days in any 180 (all Schengen countries combined); fingerprints and photo on first entry (EES). ETIAS not yet required (expected 2027).${c.zones.uk ? " UK: ETA (£20) needed before travel." : ""}${c.zones.tr ? " Türkiye: visa-free since April 2026." : ""}${c.zones.ba ? " Bosnia & Herzegovina: visa-free 90 days." : ""} Passport valid 3+ months after leaving Schengen.</p>`
             : `<p>Check whether your passport needs a Schengen visa (apply to the country with the most nights; €90).${c.zones.uk ? " UK: ETA or visa needed." : ""}${c.zones.tr ? " Türkiye: e-Visa only at evisa.gov.tr if required." : ""}</p>`}</section>
@@ -2630,46 +2866,152 @@
     });
   }
   let pdfBusy = false;
-  function downloadPDF() {
-    if (!lastPlan || pdfBusy) return;
-    if (editingDay != null) { const d = editingDay; editingDay = null; refreshDay(d); }
+  // A copy of the on-screen itinerary (all tabs, light theme) laid out off-screen for capture
+  function buildPdfView() {
+    const old = $("#pdfView");
+    if (old) old.parentNode.removeChild(old);
+    const holder = document.createElement("div");
+    holder.id = "pdfView";
+    const ids = state.stops.map((x) => CITIES[x.city].name).filter((v, i, a) => a.indexOf(v) === i);
+    const flags = state.stops.map((x) => flagOf(x.city)).filter((v, i, a) => a.indexOf(v) === i).join(" ");
+    holder.innerHTML = `<header class="mast"><div><h1>Europe Trip Planner <span class="loc">${flags}</span></h1><p>${esc(state.days)}-day trip · ${esc(ids.join(", "))} · ${esc(refreshLine())}</p></div></header>`;
+    const clone = $("#out").cloneNode(true);
+    clone.removeAttribute("id");
+    clone.querySelectorAll(".tabs, .actions, .maplinks, .lmap-wrap, [data-tledit], [data-choosehotel], [data-copycard], .map-legend .btn, .tl-edit, .opts-more summary, script").forEach((n) => n.parentNode.removeChild(n));
+    clone.querySelectorAll("[role=tabpanel][hidden]").forEach((n) => n.removeAttribute("hidden"));
+    clone.querySelectorAll("details").forEach((n) => n.setAttribute("open", ""));
+    holder.appendChild(clone);
+    document.body.appendChild(holder);
+    inlineSvgStyles(holder);
+    // The blocks to place on pages, in reading order; headings stay with what follows
+    const blocks = [holder.querySelector(".mast")];
+    Array.prototype.forEach.call(clone.children, (el) => {
+      if (el.getAttribute("role") === "tabpanel" || el.id === "glanceBox") Array.prototype.forEach.call(el.children, (k) => { if (k.id === "glanceBox") blocks.push(k.firstElementChild); else blocks.push(k); });
+      else blocks.push(el);
+    });
+    return { holder, blocks: blocks.filter((b) => b && b.offsetHeight > 0) };
+  }
+
+  // Find a row near `y` (canvas pixels) that is plain background, so a long card is split between lines of text
+  function quietRow(canvas, y, lookBack) {
+    const ctx = canvas.getContext("2d"), w = canvas.width;
+    for (let r = Math.floor(y); r > y - lookBack && r > 0; r--) {
+      const row = ctx.getImageData(0, r, w, 1).data;
+      let busy = 0;
+      for (let x = 8; x < w - 8; x += 6) {
+        const k = x * 4;
+        if (Math.abs(row[k] - row[32]) + Math.abs(row[k + 1] - row[33]) + Math.abs(row[k + 2] - row[34]) > 24) { if (++busy > 2) break; }
+      }
+      if (busy <= 2) return r;
+    }
+    return Math.floor(y);
+  }
+
+  // PDF laid out like the planner page: every section (tab) and city starts a new page, nothing is cut through a line of text
+  async function downloadPDF() {
+    if (pdfBusy || !lastPlan) return;
     pdfBusy = true;
-    toast("Preparing your PDF… (a few seconds)");
-    const done = () => { pdfBusy = false; const st = $("#pdfStage"); if (st) st.parentNode.removeChild(st); };
-    Promise.all([loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"), loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js")])
-      .then(() => {
-        fitPrintPages();
-        const stage = document.createElement("div");
-        stage.id = "pdfStage";
-        document.body.appendChild(stage);
-        const pages = Array.prototype.slice.call(document.querySelectorAll("#printView .pv-page"));
-        const doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
-        let i = 0;
-        const next = () => {
-          if (i >= pages.length) return Promise.resolve();
-          const pg = pages[i].cloneNode(true);
-          stage.innerHTML = "";
-          stage.appendChild(pg);
-          inlineSvgStyles(stage);
-          return window.html2canvas(pg, { scale: 1.6, backgroundColor: "#ffffff", useCORS: true, logging: false }).then((cv) => {
-            if (i > 0) doc.addPage();
-            const h = Math.min(297, (cv.height / cv.width) * 210);
-            doc.addImage(cv.toDataURL("image/jpeg", 0.8), "JPEG", 0, 0, 210, h, undefined, "FAST");
-            i++;
-            if (i % 4 === 0) toast(`Preparing your PDF… page ${i} of ${pages.length}`);
-            return next();
-          });
+    let view = null;
+    try {
+      toast("Making your PDF… (needs internet the first time)");
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+      if (!window.html2canvas || !window.jspdf) throw new Error("libs");
+      if (editingDay != null) { const d = editingDay; editingDay = null; refreshDay(d); }
+      view = buildPdfView();
+      const SCALE = 1.35, PAPER = [243, 244, 242], Q = 0.78;
+      const pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4", compress: true });
+      const M = 10, PW = 210 - 2 * M, PH = 297 - 2 * M; // printable area in mm
+      const pxToMm = PW / view.holder.querySelector(".mast").offsetWidth;
+      const paint = () => { pdf.setFillColor(PAPER[0], PAPER[1], PAPER[2]); pdf.rect(0, 0, 210, 297, "F"); };
+      paint();
+      let y = M, pages = 1;
+      const newPage = () => { pdf.addPage(); paint(); y = M; pages++; };
+      // 1. Where each section may break: between its parts, never through a line of text
+      const host = view.holder.getBoundingClientRect();
+      const slices = [];
+      view.blocks.forEach((b, bi) => {
+        const leaves = [];
+        const expand = (el) => {
+          if (el.offsetHeight * pxToMm > PH && el.children.length > 1) Array.prototype.forEach.call(el.children, (k) => { if (k.offsetHeight > 0) expand(k); });
+          else leaves.push(el);
         };
-        return next().then(() => {
-          const names = state.stops.map((x) => CITIES[x.city].name.replace(/ \(.*\)/, "")).filter((v, k, a) => a.indexOf(v) === k).slice(0, 4).join(", ");
-          doc.setProperties({ title: `Europe trip · ${state.days} days · ${names}`, creator: "Europe Trip Planner" });
-          const blob = doc.output("blob");
-          window.__lastPdf = blob; // for testing
-          done();
-          offerFile(blob, `Europe trip itinerary (${state.days} days).pdf`, "Your PDF");
+        expand(b);
+        const br = b.getBoundingClientRect();
+        leaves.forEach((el, n) => {
+          const top = n === 0 ? 0 : el.getBoundingClientRect().top - br.top;
+          const next = leaves[n + 1] ? leaves[n + 1].getBoundingClientRect().top - br.top : br.height;
+          if (next - top > 0.5) slices.push({ bi, el, top, bottom: next, last: n === leaves.length - 1 });
         });
-      })
-      .catch(() => { done(); showPrintHelp("nopdf"); });
+      });
+      const cls = (el, c) => el.classList && el.classList.contains(c);
+      const isSection = (el) => el.tagName === "H2" && cls(el, "print-only");
+      const isCity = (el) => cls(el, "city-band");
+      const keepsWithNext = (el) => isSection(el) || isCity(el) || cls(el, "city-stay") || /^H[1-6]$/.test(el.tagName) || cls(el, "day-num") || cls(el, "day-title") || cls(el, "details-h") || cls(el, "wx") || cls(el, "tl-head") || cls(el, "slot-when");
+      // 2. Draw each section once
+      const drawn = [];
+      for (let bi = 0; bi < view.blocks.length; bi++) {
+        toast(`Making your PDF… ${Math.round((bi / view.blocks.length) * 100)}%`);
+        drawn.push(await window.html2canvas(view.blocks[bi], { scale: SCALE, backgroundColor: "rgb(" + PAPER.join(",") + ")", useCORS: true, logging: false, windowWidth: 1300 }));
+      }
+      const hOf = (k) => (slices[k].bottom - slices[k].top) * pxToMm;
+      // 3. Place slices: sections and cities start a new page; headings stay with what follows
+      let atTop = true, prevSection = false;
+      for (let k = 0; k < slices.length; k++) {
+        const sl = slices[k], el = sl.el, block = view.blocks[sl.bi], src = drawn[sl.bi];
+        const br = block.getBoundingClientRect();
+        const xMm = M + (br.left - host.left) * pxToMm, wMm = br.width * pxToMm, hMm = hOf(k);
+        if ((isSection(el) || (isCity(el) && !prevSection)) && !atTop) { newPage(); atTop = true; }
+        else {
+          let need = hMm, j = k + 1;
+          if (slices[k + 1] && slices[k + 1].bi === sl.bi && slices[k + 1].last && hOf(k + 1) < 22) need += hOf(k + 1); // keep a short closing line with its card
+          if (keepsWithNext(el)) {
+            while (j < slices.length && keepsWithNext(slices[j].el) && !isSection(slices[j].el) && !isCity(slices[j].el)) { need += hOf(j); j++; }
+            if (j < slices.length) need += hOf(j) <= PH ? hOf(j) : 50;
+          }
+          if (!atTop && need > M + PH - y) { newPage(); atTop = true; }
+        }
+        const sy = Math.round(sl.top * SCALE), sh = Math.min(src.height - sy, Math.round((sl.bottom - sl.top) * SCALE));
+        if (sh <= 0) continue;
+        const piece = document.createElement("canvas");
+        piece.width = src.width; piece.height = sh;
+        piece.getContext("2d").drawImage(src, 0, sy, src.width, sh, 0, 0, src.width, sh);
+        if (hMm <= PH) {
+          pdf.addImage(piece.toDataURL("image/jpeg", Q), "JPEG", xMm, y, wMm, hMm, undefined, "FAST");
+          y += hMm + (sl.last ? 4 : 0);
+        } else {
+          // a single part taller than a whole page (rare): split it at a blank line
+          let from = 0;
+          while (from < piece.height - 2) {
+            const roomPx = ((M + PH - y) / pxToMm) * SCALE;
+            let cut = from + roomPx >= piece.height ? piece.height : quietRow(piece, from + roomPx, Math.min(260, roomPx * 0.4));
+            if (cut <= from + 20) cut = Math.min(piece.height, from + roomPx);
+            const part = document.createElement("canvas");
+            part.width = piece.width; part.height = cut - from;
+            part.getContext("2d").drawImage(piece, 0, from, piece.width, cut - from, 0, 0, piece.width, cut - from);
+            const partMm = ((cut - from) / SCALE) * pxToMm;
+            pdf.addImage(part.toDataURL("image/jpeg", Q), "JPEG", xMm, y, wMm, partMm, undefined, "FAST");
+            y += partMm; from = cut;
+            if (from < piece.height - 2) newPage();
+          }
+          y += sl.last ? 4 : 0;
+        }
+        atTop = false;
+        prevSection = isSection(el);
+      }
+      const names = state.stops.map((x) => CITIES[x.city].name.replace(/ \(.*\)/, "")).filter((v, k, a) => a.indexOf(v) === k).slice(0, 4).join(", ");
+      pdf.setProperties({ title: `Europe trip · ${state.days} days · ${names}`, creator: "Europe Trip Planner" });
+      const blob = pdf.output("blob");
+      window.__lastPdf = blob; // for testing
+      window.__lastPdfPages = pages;
+      const t = $(".toast"); if (t) t.hidden = true;
+      offerFile(blob, `Europe trip itinerary (${state.days} days).pdf`, `Your PDF (${pages} pages)`);
+    } catch (e) {
+      showPrintHelp("nopdf");
+    } finally {
+      if (view && view.holder.parentNode) view.holder.parentNode.removeChild(view.holder);
+      pdfBusy = false;
+    }
   }
 
   /* Save the current plan as a script-free HTML file: it opens in any iPhone preview
@@ -2718,6 +3060,7 @@ ${pv}
     lastPlan.days.forEach((d, i) => {
       L.push(`DAY ${i + 1}${d.date ? " — " + fmtDate(d.date) : ""} · ${fname(d.cityId)} · ${dayTitle(d)}`);
       timelineFor(d, i).forEach((x) => L.push(`  ${hhmm(x.start)}${x.end > x.start ? "–" + hhmm(x.end) : ""}  ${x.title}${x.note ? " — " + x.note : ""}`));
+      if (d.date) L.push("  Weather — " + wxPlain(d));
       L.push("  Details:");
       d.slots.forEach((s) => {
         const w = SLOT[s.part].label.toUpperCase();
@@ -2777,7 +3120,7 @@ ${pv}
         if (tab.dataset.mapdayOpen != null) lmapDay = tab.dataset.mapdayOpen;
         currentTab = tab.dataset.tab; save("tab", currentTab);
         document.querySelectorAll(".tabs [data-tab]").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === currentTab));
-        ["plan", "map", "stay", "prep", "talk"].forEach((id) => ($("#pane-" + id).hidden = id !== currentTab));
+        ["plan", "map", "wx", "stay", "prep", "talk"].forEach((id) => ($("#pane-" + id).hidden = id !== currentTab));
         if (currentTab === "map") showStreetMap();
         if (!tab.closest(".tabs")) $(".tabs").scrollIntoView({ behavior: "smooth", block: "start" });
         return;

@@ -910,6 +910,21 @@ body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 
 .chip.own { border-style: dashed; }
 .day-title .dflag { font-size: 0.95em; margin-right: 2px; }
 .refresh { max-width: 1320px; margin: 28px auto 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+/* Weather */
+.wx { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; background: var(--sky-soft); border-radius: 8px; padding: 7px 10px; margin-bottom: 6px; }
+.wx.muted { color: var(--muted); background: var(--paper); border: 1px dashed var(--line); }
+.wx-ic { font-size: 18px; line-height: 1.2; }
+.g-wx { white-space: nowrap; font-family: var(--mono); font-size: 12.5px; }
+table.wxmon tr.trip td { background: var(--seal-soft); }
+table.wxsum td, table.wxmon td { vertical-align: top; }
+.hotelres { display: grid; gap: 6px; flex-basis: 100%; }
+.hotelpick { text-align: left; width: 100%; line-height: 1.35; }
+.nearpick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.nearpick select { flex: 1 1 160px; min-height: 34px; padding: 4px 8px; }
+.hotelset { flex-basis: 100%; }
+.ownopts { font-size: 13px; gap: 6px 8px; }
+.ownopts select { flex: 1 1 110px; min-height: 34px; padding: 4px 8px; }
+#ownmsg-0 .hotelpick, .ownplace .hotelpick { margin-top: 4px; }
 .quick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .quick .hint { flex-basis: 100%; }
 .nlist { display: grid; gap: 6px; }
@@ -1080,6 +1095,24 @@ body.pv-screen > *:not(#printView):not(#pvBar):not(.toast) { display: none !impo
 body.pv-screen #printView { display: block; position: static; visibility: visible; width: auto; }
 body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12px rgba(0,0,0,.18); box-sizing: content-box; }
 /* Off-screen copy used to measure page heights at A4 width */
+/* Copy of the planner page drawn into the PDF: off-screen, desktop width, always the light palette */
+#pdfView { position: absolute; left: -12000px; top: 0; width: 820px; background: #F3F4F2; padding: 0;
+  --paper: #F3F4F2; --card: #FFFFFF; --ink: #17202B; --muted: #586373; --line: #D9DDE1; --seal: #B4432B; --seal-soft: #F8E5DF;
+  --jade: #1D7556; --jade-soft: #E0F0E8; --gold: #8C620E; --gold-soft: #F5EBD6; --sky: #2B5C8A; --sky-soft: #E2ECF5;
+  --sea: #D9E6EF; --land: #F7F6F2; --coast: #98A6B3; --mapborder: #B4BEC8; color: var(--ink); color-scheme: light; }
+#pdfView .out { display: grid; gap: 14px; }
+#pdfView .mast { padding: 6px 0 4px; max-width: none; }
+#pdfView .mast h1 { font-size: 30px; }
+#pdfView .day { animation: none; }
+#pdfView .print-only { display: block; font-family: var(--display); font-size: 22px; margin: 6px 0 0; padding-bottom: 4px; border-bottom: 3px solid var(--seal); }
+#pdfView [hidden] { display: none !important; }
+/* html2canvas draws inset shadows as solid fills: use a plain border in the PDF */
+#pdfView .hotel.pick { box-shadow: none; border-width: 2px; }
+/* In the PDF, day cards use the stacked layout so they can break cleanly between parts */
+#pdfView .day { grid-template-columns: minmax(0, 1fr); }
+#pdfView .day-num { flex-direction: row; justify-content: flex-start; border-right: 0; border-bottom: 1px solid var(--line); padding: 8px 14px; gap: 10px; text-align: left; }
+#pdfView .day-num .stamp { width: 40px; height: 40px; font-size: 19px; }
+#pdfView .tabs { display: none; }
 #pdfStage { position: absolute; left: -10000px; top: 0; width: 210mm; background: #fff; --sea: #D9E6EF; --land: #F7F6F2; --coast: #98A6B3; --mapborder: #B4BEC8; --ink: #111; --muted: #555; --card: #fff; --seal: #A3241E; --sky: #24527D; --gold: #7A560C; --jade: #1D6B4F; --line: #ccc; --paper: #fff; color: #111; }
 #pdfStage .pv-page { padding: 10mm; box-sizing: content-box; width: 190mm; }
 #printView.measuring { display: block; position: absolute; left: -10000px; top: 0; width: 190mm; visibility: hidden; }
@@ -1104,9 +1137,10 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
 .pv-glance td { font-size: 0.92em; line-height: 1.3; }
 .pv-glance td:nth-child(1) { width: 4%; }
 .pv-glance td:nth-child(2) { width: 9%; white-space: nowrap; }
-.pv-glance td:nth-child(3) { width: 14%; }
+.pv-glance td:nth-child(3) { width: 10%; white-space: nowrap; }
+.pv-glance td:nth-child(4) { width: 13%; }
 .pv-glance .nowrap { white-space: nowrap; }
-.pv-glance td:nth-child(7) { width: 12%; }
+.pv-glance td:nth-child(8) { width: 12%; }
 .pv-glance tbody tr:nth-child(even) td { background: #f4f5f6; }
 .pv-day th { width: 23mm; text-align: left; vertical-align: top; padding: 5px 6px 5px 0; font-family: var(--mono); font-size: 0.85em; font-weight: 400; color: #555; text-transform: none; letter-spacing: 0; border-top: 1px solid #ccc; }
 .pv-day th b { font-family: var(--display); font-size: 1.15em; color: #111; }
@@ -4484,6 +4518,131 @@ Object.keys(HOTEL_PICKS).forEach((id) => {
 
 </script>
 <script>
+/* Typical weather by month (long-term averages, rounded): average high and low in °C, and days with rain or snow (≥1 mm).
+   Sources: national weather services' climate normals as summarised on Wikipedia city climate tables (Nov 2026).
+   These are averages for planning, not forecasts — real days can be several degrees warmer or colder.
+   notes: [[months 1–12], "what it's like"]; mtn: extra line for high places visited from the city. */
+const CLIMATE = {
+  lon: { hi: [8, 9, 12, 15, 18, 21, 24, 23, 20, 16, 11, 9], lo: [2, 2, 4, 5, 8, 11, 14, 13, 11, 8, 5, 3], rain: [11, 9, 9, 9, 8, 8, 7, 8, 8, 11, 11, 10],
+    notes: [[[12, 1, 2], "Cool, grey and damp; dark by 4 pm in midwinter."], [[3, 4, 5], "Changeable spring — sunshine and showers on the same day."], [[6, 7, 8], "Mild to warm and the driest months; heatwaves above 30°C now happen most summers."], [[9, 10, 11], "Pleasant September, then wetter and windier."]] },
+  edi: { hi: [7, 8, 10, 12, 15, 18, 19, 19, 17, 13, 9, 7], lo: [1, 1, 2, 4, 6, 9, 11, 11, 9, 6, 3, 1], rain: [13, 10, 11, 9, 10, 10, 10, 11, 10, 12, 12, 12],
+    notes: [[[12, 1, 2], "Cold, windy and dark (sunset ~3:40 pm in December)."], [[3, 4, 5], "Cool and breezy; May is often the sunniest month."], [[6, 7, 8], "Mild rather than warm — long light evenings; August is festival month."], [[9, 10, 11], "Crisp autumn turning wet and windy."]] },
+  dub: { hi: [8, 9, 10, 13, 15, 18, 20, 19, 17, 14, 10, 8], lo: [2, 2, 3, 4, 7, 9, 11, 11, 9, 7, 4, 3], rain: [12, 10, 10, 9, 9, 8, 8, 9, 9, 11, 11, 12],
+    notes: [[[12, 1, 2], "Mild but damp and windy; frost is rare."], [[3, 4, 5], "Showery spring; May is usually the brightest month."], [[6, 7, 8], "Mild summer, rarely hot; the west coast (Cliffs of Moher) is windier."], [[9, 10, 11], "Soft autumn light, increasingly wet."]] },
+  par: { hi: [7, 9, 13, 16, 20, 23, 25, 25, 21, 16, 11, 8], lo: [3, 3, 5, 7, 11, 14, 16, 16, 13, 10, 6, 3], rain: [10, 9, 10, 9, 9, 8, 7, 7, 8, 10, 10, 11],
+    notes: [[[12, 1, 2], "Cold, grey and damp; occasional frost."], [[3, 4, 5], "Mild spring with showers — the chestnut trees bloom in April."], [[6, 7, 8], "Warm, sometimes hot (heatwaves 35°C+); thunderstorms in the afternoon."], [[9, 10], "Lovely early autumn."], [[11], "Grey and wet."]] },
+  nce: { hi: [13, 14, 16, 18, 22, 25, 28, 28, 25, 21, 17, 14], lo: [5, 6, 8, 10, 14, 17, 20, 20, 17, 13, 9, 6], rain: [6, 5, 6, 6, 5, 3, 1, 2, 4, 7, 8, 6],
+    notes: [[[12, 1, 2], "Mild and sunny between rain spells — too cool to swim."], [[3, 4, 5], "Warm spring days; the sea stays cold until June."], [[6, 7, 8, 9], "Hot, dry and sunny; sea 23–26°C."], [[10, 11], "Warm October; heavy autumn storms are possible."]] },
+  ams: { hi: [6, 7, 10, 14, 17, 20, 22, 22, 19, 15, 10, 7], lo: [1, 1, 3, 5, 8, 11, 13, 13, 11, 8, 4, 2], rain: [12, 10, 11, 9, 9, 9, 9, 10, 11, 12, 13, 12],
+    notes: [[[12, 1, 2], "Cold, windy and damp; canals rarely freeze."], [[3, 4, 5], "Cool spring; tulips mid-April to early May."], [[6, 7, 8], "Mild summer with long evenings and showers."], [[9, 10, 11], "Windy and wet autumn."]] },
+  bru: { hi: [6, 7, 11, 15, 18, 21, 23, 23, 19, 15, 10, 7], lo: [1, 1, 3, 5, 9, 12, 14, 14, 11, 8, 4, 2], rain: [12, 10, 11, 9, 10, 9, 9, 9, 9, 10, 12, 12],
+    notes: [[[12, 1, 2], "Cold, grey and damp."], [[3, 4, 5], "Changeable spring."], [[6, 7, 8], "Mild and showery, sometimes warm."], [[9, 10, 11], "Damp, increasingly grey autumn."]] },
+  ber: { hi: [3, 5, 9, 15, 19, 22, 25, 24, 19, 14, 8, 4], lo: [-2, -1, 1, 4, 9, 12, 14, 14, 10, 6, 2, -1], rain: [10, 8, 9, 7, 8, 8, 9, 8, 7, 7, 9, 10],
+    notes: [[[12, 1, 2], "Cold and grey, often below freezing; snow some years."], [[3, 4], "Cool spring, warming fast in April."], [[5, 6, 7, 8], "Warm summer with thunderstorms; heatwaves up to 35°C."], [[9, 10, 11], "Pleasant September, then cold and grey."]] },
+  muc: { hi: [3, 5, 10, 14, 19, 22, 24, 24, 19, 14, 8, 4], lo: [-4, -3, 0, 3, 8, 11, 13, 13, 9, 5, 0, -2], rain: [10, 9, 10, 10, 12, 13, 12, 11, 9, 8, 9, 10],
+    notes: [[[12, 1, 2], "Cold, often snowy; Christmas markets in December."], [[3, 4, 5], "Changeable; the föhn wind brings warm, clear days with Alpine views."], [[6, 7, 8], "Warm with frequent afternoon thunderstorms."], [[9, 10], "Golden autumn — Oktoberfest late September."], [[11], "Cold, foggy and grey."]] },
+  zrh: { hi: [3, 5, 10, 14, 19, 22, 24, 24, 19, 14, 8, 4], lo: [-2, -2, 1, 4, 8, 12, 14, 13, 10, 6, 2, -1], rain: [10, 9, 11, 11, 12, 12, 12, 12, 9, 9, 10, 11],
+    notes: [[[12, 1, 2], "Cold and often foggy (high fog over the lake); snow in the hills."], [[3, 4, 5], "Cool, showery spring."], [[6, 7, 8], "Warm with thunderstorms; lake swimming in summer."], [[9, 10, 11], "Mild autumn turning foggy in November."]] },
+  lzn: { hi: [3, 5, 10, 14, 19, 22, 24, 23, 19, 14, 8, 4], lo: [-2, -2, 1, 5, 9, 12, 14, 14, 11, 7, 2, -1], rain: [11, 10, 12, 12, 14, 14, 14, 14, 11, 10, 11, 11],
+    notes: [[[12, 1, 2], "Cold, misty lake days; snow on the surrounding mountains."], [[3, 4, 5], "Cool and showery; the Pilatus cogwheel railway opens in May."], [[6, 7, 8], "Warm with afternoon thunderstorms."], [[9, 10, 11], "Clear autumn days, cold by November."]],
+    mtn: "On Pilatus (2,128 m) and Titlis (3,020 m) it's 10–20°C colder than in town, with snow on Titlis all year — bring a warm jacket, gloves and sunglasses." },
+  int: { hi: [2, 5, 10, 14, 18, 22, 24, 23, 19, 14, 7, 3], lo: [-5, -4, 0, 3, 7, 11, 13, 12, 9, 5, 0, -3], rain: [9, 9, 11, 11, 13, 13, 12, 12, 9, 9, 9, 10],
+    notes: [[[12, 1, 2, 3], "Snowy Alpine winter; mountain trains and ski lifts run, some hiking trails close."], [[4, 5], "Spring in the valley, still winter up high; some lifts close for maintenance."], [[6, 7, 8], "Warm valley days; afternoon storms in the mountains — start excursions early."], [[9, 10], "Clear, settled days — great for views."], [[11], "Quiet, grey and cold between seasons."]],
+    mtn: "At Jungfraujoch (3,454 m) it's about 15–20°C colder than in Interlaken and often below 0°C even in summer, with strong sun on the snow — bring a warm jacket, gloves, hat and sunglasses." },
+  vie: { hi: [3, 5, 10, 16, 21, 24, 26, 26, 21, 15, 8, 4], lo: [-2, -1, 2, 6, 11, 14, 16, 16, 12, 7, 3, -1], rain: [7, 7, 8, 7, 9, 9, 9, 8, 7, 6, 7, 8],
+    notes: [[[12, 1, 2], "Cold, grey and windy; Christmas markets until 23–26 December."], [[3, 4, 5], "Spring arrives quickly; parks bloom in April."], [[6, 7, 8], "Warm to hot, with thunderstorms."], [[9, 10, 11], "Pleasant autumn, cold by November."]] },
+  szg: { hi: [3, 5, 10, 14, 19, 22, 24, 24, 19, 15, 8, 4], lo: [-4, -3, 1, 4, 9, 12, 14, 14, 10, 6, 1, -2], rain: [11, 10, 13, 13, 15, 17, 16, 15, 12, 10, 11, 12],
+    notes: [[[12, 1, 2], "Cold and snowy around the city; Christmas markets."], [[3, 4, 5], "Cool, rainy spring."], [[6, 7, 8], "Warm but famously rainy ('Schnürlregen', persistent drizzle) — Austria's wettest big city."], [[9, 10], "Settled, golden autumn."], [[11], "Cold and grey."]] },
+  prg: { hi: [1, 3, 8, 14, 19, 22, 24, 24, 19, 13, 6, 2], lo: [-4, -3, 0, 4, 8, 12, 13, 13, 9, 5, 1, -2], rain: [8, 7, 8, 7, 9, 9, 9, 8, 7, 7, 8, 8],
+    notes: [[[12, 1, 2], "Cold, often below freezing, with smog-grey days; magical with snow."], [[3, 4, 5], "Cool spring, warm by May."], [[6, 7, 8], "Warm summer with thunderstorms."], [[9, 10, 11], "Crisp autumn, cold by November."]] },
+  bud: { hi: [2, 5, 11, 17, 22, 25, 27, 27, 22, 16, 8, 3], lo: [-3, -2, 2, 7, 11, 15, 16, 16, 12, 7, 3, -1], rain: [7, 6, 7, 7, 8, 8, 7, 6, 6, 6, 8, 8],
+    notes: [[[12, 1, 2], "Cold and grey — perfect for the outdoor thermal baths."], [[3, 4, 5], "Warm, pleasant spring."], [[6, 7, 8], "Hot summer (35°C+ heatwaves) with storms."], [[9, 10], "Warm, sunny early autumn."], [[11], "Cold and foggy."]] },
+  rom: { hi: [12, 13, 16, 19, 23, 28, 31, 31, 27, 22, 17, 13], lo: [3, 4, 6, 8, 12, 16, 18, 19, 16, 12, 8, 4], rain: [7, 7, 7, 7, 5, 3, 2, 3, 5, 7, 9, 8],
+    notes: [[[12, 1, 2], "Mild days, chilly nights; occasional heavy rain."], [[3, 4, 5], "Lovely spring — warm days, busy with Easter crowds."], [[6, 7, 8], "Hot and dry; heatwaves often reach 35–38°C. Sightsee early, rest at midday."], [[9, 10], "Warm and pleasant."], [[11], "The wettest month, with downpours."]] },
+  flr: { hi: [10, 12, 16, 19, 24, 29, 32, 32, 27, 21, 15, 11], lo: [2, 3, 5, 8, 12, 15, 18, 18, 15, 10, 6, 3], rain: [7, 7, 8, 9, 8, 5, 3, 4, 6, 8, 9, 8],
+    notes: [[[12, 1, 2], "Cold, damp nights in the river valley; few crowds."], [[3, 4, 5], "Pleasant spring; showers in April–May."], [[6, 7, 8], "Very hot — the valley traps heat (often 35°C+)."], [[9, 10], "Warm, golden autumn — harvest time in Tuscany."], [[11], "Wet and cool."]] },
+  vce: { hi: [7, 9, 13, 17, 22, 26, 28, 28, 24, 18, 12, 8], lo: [0, 1, 5, 8, 13, 16, 18, 18, 15, 10, 5, 1], rain: [6, 6, 7, 9, 8, 8, 6, 6, 6, 7, 7, 7],
+    notes: [[[12, 1, 2], "Cold, damp and foggy; acqua alta (flooding) is most likely from October to January — hotels lend boots."], [[3, 4, 5], "Mild spring; Carnival in February–March."], [[6, 7, 8], "Hot and humid, with mosquitoes in the evening."], [[9, 10, 11], "Pleasant September; high-water season begins in October."]] },
+  mil: { hi: [6, 9, 14, 17, 22, 26, 29, 28, 24, 17, 11, 6], lo: [-1, 0, 4, 7, 12, 16, 18, 18, 14, 9, 4, 0], rain: [6, 6, 7, 9, 9, 8, 6, 7, 6, 8, 8, 7],
+    notes: [[[12, 1, 2], "Cold and foggy in the Po plain."], [[3, 4, 5], "Mild, showery spring; Lake Como gardens bloom in April–May."], [[6, 7, 8], "Hot and humid with thunderstorms; much of Milan empties in August."], [[9, 10, 11], "Pleasant early autumn, then fog and rain."]] },
+  amf: { hi: [13, 14, 16, 19, 23, 27, 30, 30, 27, 23, 18, 14], lo: [6, 6, 8, 10, 14, 18, 20, 21, 18, 14, 10, 7], rain: [10, 9, 8, 8, 6, 3, 2, 3, 6, 8, 10, 10],
+    notes: [[[12, 1, 2], "Mild but rainy; many hotels and ferries close for the season."], [[3, 4, 5], "Spring — ferries restart around Easter; lemon blossom."], [[6, 7, 8], "Hot, dry and crowded; sea 24–27°C."], [[9, 10], "Warm, quieter, sea still warm."], [[11], "Wet; the season winds down."]] },
+  bcn: { hi: [14, 15, 17, 19, 22, 26, 29, 29, 26, 22, 17, 15], lo: [5, 6, 8, 10, 14, 18, 21, 21, 18, 14, 9, 6], rain: [5, 4, 5, 6, 6, 4, 3, 4, 5, 6, 5, 5],
+    notes: [[[12, 1, 2], "Mild and sunny; too cool for the beach."], [[3, 4, 5], "Warm spring days, cool evenings."], [[6, 7, 8], "Hot and humid; sea 24–26°C."], [[9, 10], "Warm, with heavy storms possible."], [[11], "Mild and mostly sunny."]] },
+  mad: { hi: [10, 12, 16, 18, 22, 28, 32, 31, 26, 19, 13, 10], lo: [1, 2, 5, 7, 11, 15, 18, 18, 15, 10, 5, 2], rain: [6, 5, 5, 7, 6, 3, 1, 1, 3, 6, 6, 6],
+    notes: [[[12, 1, 2], "Sunny but cold, with frosty nights (650 m altitude)."], [[3, 4, 5], "Pleasant spring; April can be showery."], [[6, 7, 8], "Very hot and dry (35–40°C); nights stay warm."], [[9, 10, 11], "Warm September and October, then cool."]] },
+  svq: { hi: [16, 18, 22, 24, 28, 33, 36, 36, 32, 26, 20, 17], lo: [6, 7, 9, 11, 14, 18, 20, 21, 18, 14, 10, 7], rain: [6, 5, 5, 6, 4, 1, 0, 0, 2, 5, 6, 6],
+    notes: [[[12, 1, 2], "Mild, sunny winter days; chilly nights."], [[3, 4, 5], "The best time: warm, orange blossom in March–April, Semana Santa and the April Fair."], [[6, 7, 8, 9], "Extremely hot (often 40°C+) — sightsee before 11 am and after 7 pm."], [[10, 11], "Warm and pleasant again."]] },
+  grx: { hi: [13, 15, 18, 20, 24, 30, 34, 34, 29, 22, 17, 13], lo: [1, 2, 4, 7, 10, 14, 17, 17, 14, 9, 5, 2], rain: [6, 5, 5, 7, 5, 2, 0, 1, 3, 5, 6, 6],
+    notes: [[[12, 1, 2], "Sunny days, cold nights (often below freezing); snow on the Sierra Nevada."], [[3, 4, 5], "Lovely spring — the Alhambra gardens in flower."], [[6, 7, 8], "Hot and dry days, cooler nights."], [[9, 10, 11], "Warm autumn, cool nights."]] },
+  lis: { hi: [15, 16, 19, 20, 22, 26, 28, 29, 27, 23, 18, 15], lo: [8, 9, 11, 12, 14, 17, 18, 19, 18, 15, 12, 9], rain: [10, 8, 7, 8, 6, 2, 1, 1, 4, 8, 9, 10],
+    notes: [[[12, 1, 2], "Mild but rainy; houses have little heating."], [[3, 4, 5], "Sunny and pleasant."], [[6, 7, 8, 9], "Warm and dry, cooled by Atlantic breezes; the ocean stays cold (~18°C)."], [[10, 11], "Warm October, rainy November."]] },
+  opo: { hi: [14, 15, 17, 18, 20, 23, 25, 26, 24, 21, 17, 14], lo: [5, 6, 8, 9, 12, 14, 16, 16, 15, 12, 9, 7], rain: [13, 11, 10, 11, 10, 5, 3, 3, 6, 11, 12, 13],
+    notes: [[[12, 1, 2], "Mild but often wet and windy."], [[3, 4, 5], "Changeable spring with showers."], [[6, 7, 8, 9], "Warm and mostly dry; morning sea mist."], [[10, 11], "Rain returns."]] },
+  ath: { hi: [13, 14, 17, 20, 26, 31, 34, 34, 29, 24, 19, 15], lo: [7, 7, 9, 12, 16, 21, 23, 23, 20, 16, 12, 9], rain: [7, 6, 5, 4, 3, 1, 1, 1, 2, 4, 6, 7],
+    notes: [[[12, 1, 2], "Mild with rainy spells; some islands quiet."], [[3, 4, 5], "Warm, clear spring — ideal for the Acropolis."], [[6, 7, 8], "Very hot and dry (heatwaves 40°C+); the Acropolis can close at midday in extreme heat."], [[9, 10], "Warm and sunny, sea still warm."], [[11], "Cooler, with rain."]] },
+  jtr: { hi: [14, 15, 16, 19, 23, 27, 29, 29, 26, 22, 19, 16], lo: [10, 10, 11, 13, 16, 20, 22, 22, 20, 17, 14, 12], rain: [7, 6, 5, 3, 2, 0, 0, 0, 1, 3, 5, 7],
+    notes: [[[12, 1, 2, 3], "Mild, windy and quiet; many hotels, restaurants and boat trips close."], [[4, 5], "Warm and fresh; the season reopens."], [[6, 7, 8], "Hot, dry and sunny; the strong meltemi wind can cancel boat trips and ferries."], [[9, 10], "Warm, calmer and less crowded — sea at its warmest."], [[11], "The season ends; windy and cooler."]] },
+  dbv: { hi: [12, 13, 15, 18, 22, 26, 29, 29, 25, 21, 17, 13], lo: [6, 6, 8, 11, 15, 18, 21, 21, 18, 14, 10, 7], rain: [11, 10, 10, 10, 8, 6, 3, 4, 7, 10, 13, 12],
+    notes: [[[12, 1, 2], "Mild but rainy; the cold bura wind can blow."], [[3, 4, 5], "Pleasant spring."], [[6, 7, 8], "Hot, dry and very busy; sea 24–26°C."], [[9, 10], "Warm, sea still warm, fewer crowds."], [[11], "The wettest month."]] },
+  spu: { hi: [11, 12, 14, 18, 23, 27, 30, 30, 25, 20, 15, 12], lo: [5, 5, 7, 10, 15, 18, 21, 21, 17, 13, 9, 6], rain: [9, 9, 9, 9, 7, 6, 4, 4, 6, 8, 11, 10],
+    notes: [[[12, 1, 2], "Mild with bura wind; island ferries reduced."], [[3, 4, 5], "Warm spring; catamarans restart."], [[6, 7, 8], "Hot, sunny and busy; sea 24–26°C."], [[9, 10, 11], "Warm autumn, rainier by November."]] },
+  sjj: { hi: [4, 6, 11, 16, 21, 24, 27, 27, 22, 17, 10, 5], lo: [-4, -3, 0, 4, 9, 12, 14, 14, 10, 6, 1, -2], rain: [10, 9, 10, 11, 11, 10, 8, 7, 8, 8, 10, 11],
+    notes: [[[12, 1, 2], "Cold and snowy in the valley; winter air pollution can be bad."], [[3, 4, 5], "Cool, showery spring."], [[6, 7, 8], "Warm, sunny days, cool nights; Mostar is much hotter (often 38°C+)."], [[9, 10, 11], "Pleasant autumn, cold by November."]] },
+  ist: { hi: [9, 9, 12, 16, 21, 26, 28, 29, 25, 20, 15, 11], lo: [4, 3, 5, 8, 13, 18, 21, 21, 18, 14, 9, 6], rain: [12, 10, 9, 7, 5, 4, 2, 2, 5, 8, 10, 13],
+    notes: [[[12, 1, 2], "Cold, wet and windy; occasional snow."], [[3, 4, 5], "Mild spring; tulips in April."], [[6, 7, 8], "Hot and humid, with Bosphorus breezes."], [[9, 10, 11], "Warm, pleasant September and October; rainy November."]] },
+  cph: { hi: [3, 3, 6, 11, 16, 19, 21, 21, 17, 12, 7, 4], lo: [-1, -1, 1, 4, 9, 12, 14, 14, 11, 7, 3, 0], rain: [10, 8, 9, 7, 8, 8, 8, 9, 9, 10, 10, 10],
+    notes: [[[12, 1, 2], "Cold, dark (7 hours of daylight) and windy; cosy Christmas markets."], [[3, 4, 5], "Cool spring, bright by May."], [[6, 7, 8], "Mild summer with very long days; harbour swimming."], [[9, 10, 11], "Cool, windy autumn."]] },
+  sto: { hi: [1, 1, 5, 11, 16, 21, 23, 22, 17, 10, 5, 2], lo: [-3, -4, -2, 2, 7, 12, 15, 14, 10, 5, 1, -2], rain: [9, 7, 7, 6, 6, 7, 8, 8, 7, 9, 9, 9],
+    notes: [[[12, 1, 2], "Cold, snowy and dark (6 hours of daylight); the archipelago can freeze."], [[3, 4, 5], "Late spring; still cold in March."], [[6, 7, 8], "Mild to warm, with almost 19 hours of daylight at midsummer."], [[9, 10, 11], "Crisp autumn, dark by November."]] },
+  osl: { hi: [-1, 0, 5, 11, 17, 21, 23, 21, 16, 9, 4, 0], lo: [-7, -7, -3, 1, 6, 11, 13, 12, 8, 3, -1, -5], rain: [9, 7, 8, 7, 8, 9, 10, 10, 9, 10, 10, 9],
+    notes: [[[12, 1, 2], "Cold and snowy; 6 hours of daylight in December. Icy pavements — grippy boots help."], [[3, 4], "Snow lingers in March; spring in April."], [[5, 6, 7, 8], "Mild to warm with long light evenings."], [[9, 10, 11], "Cool, colourful autumn, dark by November."]] },
+  bgo: { hi: [4, 4, 6, 10, 14, 17, 19, 19, 15, 11, 7, 5], lo: [-1, -1, 1, 3, 7, 10, 12, 12, 10, 6, 2, 0], rain: [20, 17, 17, 15, 13, 14, 15, 17, 19, 20, 19, 20],
+    notes: [[[12, 1, 2], "Mild for Norway but very wet, windy and dark."], [[3, 4, 5], "Cool spring; May is one of the drier months."], [[6, 7, 8], "Mild with long days — still expect rain about every other day."], [[9, 10, 11], "Europe's rainiest city at its wettest: bring proper rain gear."]],
+    mtn: "On the Flåm railway, fjords and mountain viewpoints it's cooler and windier than in town, with snow on high passes until June." },
+  hel: { hi: [-2, -3, 1, 8, 15, 19, 22, 20, 15, 9, 3, 0], lo: [-7, -8, -5, 0, 5, 10, 13, 12, 8, 3, -1, -4], rain: [10, 8, 8, 7, 6, 7, 8, 9, 9, 10, 10, 10],
+    notes: [[[12, 1, 2], "Cold, snowy and dark (6 hours of daylight); the sea can freeze."], [[3, 4], "Still wintry in March; spring in late April."], [[5, 6, 7, 8], "Mild to warm with white nights around midsummer."], [[9, 10, 11], "Cool autumn, dark and slushy by November."]] },
+  rek: { hi: [3, 3, 4, 6, 10, 12, 14, 14, 11, 7, 4, 3], lo: [-2, -2, -1, 1, 4, 7, 9, 8, 6, 2, -1, -2], rain: [14, 13, 14, 12, 10, 10, 10, 11, 13, 14, 13, 15],
+    notes: [[[12, 1, 2], "Dark (4–5 hours of daylight), windy and wet or snowy; Northern Lights season. Roads can close — check road.is and safetravel.is."], [[3, 4, 5], "Long days return; still cold and windy."], [[6, 7, 8], "Cool summer with almost 24-hour daylight; weather changes fast."], [[9, 10, 11], "Northern Lights return; storms more frequent."]] },
+  tll: { hi: [-1, -2, 2, 9, 15, 19, 22, 21, 16, 9, 4, 1], lo: [-6, -7, -4, 1, 6, 10, 13, 13, 8, 4, 0, -3], rain: [11, 9, 9, 7, 6, 7, 8, 9, 10, 11, 11, 11],
+    notes: [[[12, 1, 2], "Cold, snowy and dark; a fairytale Christmas market."], [[3, 4], "Cold spring."], [[5, 6, 7, 8], "Mild to warm, long white nights."], [[9, 10, 11], "Cool, wet autumn."]] },
+  rix: { hi: [-1, 0, 4, 11, 17, 20, 23, 22, 17, 11, 4, 1], lo: [-6, -6, -3, 2, 7, 11, 13, 13, 9, 5, 0, -3], rain: [10, 9, 8, 7, 7, 8, 9, 10, 10, 11, 11, 11],
+    notes: [[[12, 1, 2], "Cold, snowy and grey."], [[3, 4], "Thawing spring."], [[5, 6, 7, 8], "Mild to warm, long evenings; Midsummer festival (Jāņi) on 23–24 June."], [[9, 10, 11], "Cool and wet."]] },
+  vno: { hi: [-2, -1, 4, 12, 18, 21, 23, 22, 17, 10, 4, 0], lo: [-7, -7, -3, 2, 7, 11, 13, 12, 8, 3, -1, -4], rain: [11, 10, 9, 8, 8, 9, 10, 9, 9, 10, 11, 11],
+    notes: [[[12, 1, 2], "Cold, snowy winter."], [[3, 4], "Cold, then a quick spring."], [[5, 6, 7, 8], "Warm, pleasant summer with thunderstorms."], [[9, 10, 11], "Cool, colourful autumn turning grey."]] },
+  waw: { hi: [0, 2, 7, 14, 20, 23, 25, 24, 19, 13, 6, 1], lo: [-5, -4, -1, 4, 9, 12, 14, 13, 9, 5, 1, -3], rain: [9, 8, 8, 7, 8, 8, 9, 8, 7, 7, 8, 9],
+    notes: [[[12, 1, 2], "Cold and grey, often below freezing."], [[3, 4, 5], "Cool spring, warm by May."], [[6, 7, 8], "Warm summer with thunderstorms."], [[9, 10, 11], "Golden 'Polish autumn', cold by November."]] },
+  krk: { hi: [1, 3, 8, 14, 19, 22, 24, 24, 19, 14, 7, 2], lo: [-5, -4, -1, 4, 8, 12, 14, 13, 9, 5, 1, -3], rain: [9, 8, 9, 9, 11, 12, 12, 10, 9, 8, 9, 9],
+    notes: [[[12, 1, 2], "Cold and snowy; winter smog on still days."], [[3, 4, 5], "Cool spring."], [[6, 7, 8], "Warm with frequent thunderstorms."], [[9, 10, 11], "Pleasant early autumn."]] },
+  bts: { hi: [3, 5, 11, 17, 22, 25, 27, 27, 22, 16, 8, 3], lo: [-3, -2, 1, 6, 11, 14, 16, 15, 11, 6, 2, -1], rain: [7, 7, 7, 7, 8, 8, 8, 7, 6, 6, 8, 8],
+    notes: [[[12, 1, 2], "Cold and windy."], [[3, 4, 5], "Warm spring."], [[6, 7, 8], "Hot summer."], [[9, 10, 11], "Pleasant autumn — wine harvest."]] },
+  lju: { hi: [4, 6, 12, 16, 21, 25, 27, 27, 22, 16, 9, 4], lo: [-4, -3, 1, 5, 10, 13, 15, 15, 11, 7, 2, -2], rain: [10, 9, 11, 13, 14, 14, 12, 11, 11, 12, 14, 12],
+    notes: [[[12, 1, 2], "Cold and foggy in town; snow at Bled and in the Alps."], [[3, 4, 5], "Showery spring."], [[6, 7, 8], "Warm with afternoon thunderstorms; Lake Bled warm enough to swim."], [[9, 10, 11], "Clear September, then very wet."]] },
+  buh: { hi: [2, 5, 11, 18, 24, 28, 30, 30, 25, 18, 10, 4], lo: [-5, -4, 0, 5, 10, 14, 16, 15, 11, 6, 1, -3], rain: [6, 6, 6, 7, 8, 8, 7, 5, 5, 5, 6, 7],
+    notes: [[[12, 1, 2], "Cold, with snow and icy winds."], [[3, 4, 5], "Short spring, warm by May."], [[6, 7, 8], "Hot summer (35°C+)."], [[9, 10, 11], "Warm September, cold by November."]] },
+  bsv: { hi: [1, 3, 9, 15, 20, 23, 25, 25, 20, 15, 8, 2], lo: [-8, -7, -3, 2, 7, 10, 12, 12, 8, 3, -2, -6], rain: [7, 7, 8, 10, 12, 13, 12, 10, 8, 7, 7, 8],
+    notes: [[[12, 1, 2], "Cold mountain winter with snow; skiing at Poiana Brașov."], [[3, 4, 5], "Cool, showery spring."], [[6, 7, 8], "Warm days, cool nights, thunderstorms."], [[9, 10], "Beautiful autumn colour in the Carpathians."], [[11], "Cold and grey."]] },
+  sof: { hi: [3, 6, 11, 16, 21, 25, 28, 28, 23, 17, 10, 4], lo: [-4, -3, 0, 5, 9, 13, 15, 15, 11, 6, 2, -2], rain: [8, 8, 8, 9, 11, 10, 7, 6, 6, 7, 8, 9],
+    notes: [[[12, 1, 2], "Cold and snowy (550 m altitude); winter smog."], [[3, 4, 5], "Cool, showery spring."], [[6, 7, 8], "Warm, sunny summer."], [[9, 10, 11], "Pleasant autumn."]],
+    mtn: "At Rila Monastery (1,150 m) it's a few degrees cooler than Sofia." },
+  beg: { hi: [5, 7, 13, 18, 24, 27, 29, 30, 25, 19, 12, 6], lo: [-1, 0, 4, 8, 13, 16, 18, 18, 14, 9, 4, 0], rain: [8, 8, 8, 9, 10, 9, 7, 6, 6, 7, 8, 9],
+    notes: [[[12, 1, 2], "Cold, with the icy košava wind."], [[3, 4, 5], "Pleasant spring."], [[6, 7, 8], "Hot summer."], [[9, 10, 11], "Warm, sunny early autumn."]] },
+  kot: { hi: [12, 13, 16, 19, 23, 27, 30, 30, 26, 21, 16, 13], lo: [4, 5, 7, 10, 14, 18, 20, 20, 17, 13, 9, 6], rain: [12, 12, 12, 11, 9, 7, 4, 5, 7, 10, 14, 13],
+    notes: [[[12, 1, 2], "Mild but one of Europe's rainiest places in winter."], [[3, 4, 5], "Warm, green spring."], [[6, 7, 8], "Hot; the fortress climb is best at dawn."], [[9, 10], "Warm, sea still warm."], [[11], "Heavy rain returns."]] },
+  tia: { hi: [12, 13, 16, 19, 24, 28, 31, 31, 28, 23, 17, 13], lo: [2, 3, 5, 8, 12, 16, 18, 18, 15, 11, 7, 4], rain: [11, 11, 11, 10, 8, 5, 3, 3, 5, 8, 12, 13],
+    notes: [[[12, 1, 2], "Mild, rainy winter."], [[3, 4, 5], "Warm, pleasant spring."], [[6, 7, 8], "Hot and dry."], [[9, 10], "Warm, sunny autumn."], [[11], "Rainy."]] },
+  ohd: { hi: [5, 7, 11, 16, 21, 25, 28, 28, 24, 18, 11, 6], lo: [-3, -2, 1, 5, 9, 13, 15, 15, 11, 7, 3, -1], rain: [8, 8, 9, 9, 9, 7, 5, 4, 5, 6, 9, 10],
+    notes: [[[12, 1, 2], "Cold, quiet season; occasional snow."], [[3, 4, 5], "Cool spring."], [[6, 7, 8], "Warm, sunny lake summer; swimming."], [[9, 10, 11], "Pleasant September, cooling quickly."]] },
+  mla: { hi: [16, 16, 18, 20, 24, 28, 31, 32, 28, 25, 21, 17], lo: [10, 10, 11, 13, 16, 20, 23, 24, 21, 18, 15, 12], rain: [10, 8, 7, 4, 2, 1, 0, 1, 4, 7, 9, 11],
+    notes: [[[12, 1, 2], "Mild, windy and showery."], [[3, 4, 5], "Warm, sunny spring."], [[6, 7, 8, 9], "Hot, humid and dry; sea 24–27°C."], [[10, 11], "Warm October; storms possible."]] },
+  mow: { hi: [-4, -3, 3, 12, 19, 22, 24, 22, 16, 9, 1, -3], lo: [-10, -10, -5, 2, 8, 12, 15, 13, 8, 3, -3, -8], rain: [9, 8, 8, 7, 8, 9, 9, 9, 8, 9, 9, 9],
+    notes: [[[12, 1, 2], "Very cold and snowy (−15°C or lower on cold spells)."], [[3, 4], "Slushy thaw."], [[5, 6, 7, 8], "Warm summer with thunderstorms."], [[9, 10, 11], "Short golden autumn, then snow."]] },
+  led: { hi: [-3, -3, 2, 10, 17, 21, 24, 22, 16, 9, 2, -1], lo: [-9, -9, -5, 1, 7, 12, 15, 13, 9, 4, -2, -6], rain: [10, 8, 8, 7, 8, 9, 9, 10, 10, 11, 10, 10],
+    notes: [[[12, 1, 2], "Cold, dark and damp; the Neva freezes."], [[3, 4], "Slow, slushy spring."], [[5, 6, 7], "White nights (late May to mid-July): it barely gets dark."], [[8, 9], "Warm, then cool."], [[10, 11], "Grey, wet and dark."]] },
+};
+
+</script>
+<script>
 /* Intercity routes for the Europe Trip Planner. The first sentence names the recommended way to travel
    (the planner reads it to pick the mode). Times and fares are typical for 2025–26 and change with season
    and how early you book. Pairs not listed here get an estimate from the distance. */
@@ -5406,6 +5565,12 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       <b class="hint">Add your own idea in ${esc(c.name)}</b>
       <div class="row"><input type="text" id="ownname-${i}" placeholder="e.g. Day trip to Florence · Lake Como · Sunset at a rooftop · Shakespeare's Globe" aria-label="Your idea" autocomplete="off" value="${esc(ownFound[st.city] || "")}">
         <button type="button" class="btn small print-btn" data-act="ownfind" data-i="${i}">➕ Add</button><button type="button" class="btn small" data-act="ownclose" data-i="${i}">Done</button></div>
+      <div class="row ownopts">
+        <label class="hint" for="owndur-${i}">Time there</label>
+        <select id="owndur-${i}"><option value="auto">From my words</option><option value="1 h">1 hour</option><option value="2 h">2 hours</option><option value="3 h">3 hours</option><option value="4 h">Half day (4 h)</option><option value="full">Full day</option></select>
+        <label class="hint" for="ownwhen-${i}">When</label>
+        <select id="ownwhen-${i}"><option value="auto">From my words</option><option value="any">Any time</option><option value="m">Morning</option><option value="e">Afternoon</option><option value="n">Evening</option></select>
+      </div>
       <div class="hint" id="ownmsg-${i}">${ownMsg[st.city] || "Write it the way you'd say it — a place, a day trip or something to do, with “morning”, “sunset” or “2 hours” if you like. We'll work out where it is, how to get there and where it fits."}</div>
     </div>`;
   }
@@ -5435,31 +5600,64 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     const m = recommendedMode(fromId, toId), e = modeEstimate(m, fromId, toId);
     return { m, mins: e.door, text: `${MODE[m].icon} ${MODE[m].label} ${CITIES[fromId].name.replace(/ \(.*\)/, "")} → ${CITIES[toId].name.replace(/ \(.*\)/, "")}, about ${dur(e.ride)} each way (${dur(e.door)} door to door), approx. ${e.cost}. ${firstSentence(routeText(fromId, toId))}` };
   }
+  const ownPending = {}, ownResults = {};
+  const ideaSay = (i, h) => { const cid = state.stops[i].city; ownMsg[cid] = h; const m = $("#ownmsg-" + i); if (m) m.innerHTML = h; };
+  function ideaFinish(i, p, msg) {
+    const st = state.stops[i], cid = st.city, c = CITIES[cid];
+    if (p.custom) { (state.custom[cid] = state.custom[cid] || []).push(p); syncCustomPlaces(); }
+    if (st.places.indexOf(p.id) < 0) st.places.push(p.id);
+    ownFound[cid] = "";
+    persist(); renderStops();
+    ideaSay(i, msg + " Press “Build / update my itinerary” to fit it into your days. Add another idea, or tap Done.");
+    toast(`Added to ${c.name}: ${p.n}`);
+  }
+  // A custom place at a location (or without one); timing from the selectors, else from the words
+  function ideaPlace(i, pend, ll, name, d, url, src, how) {
+    const c = CITIES[state.stops[i].city], tm = pend.tm;
+    const dist = ll ? km(c.stay.ll, ll) : 0, far = dist > 15;
+    const xMins = Math.round(((dist * 1.3) / 60) * 60 + 30);
+    const slots = tm.slot === "any" ? ["m", "e", "n"] : tm.slot ? [tm.slot] : [far ? "full" : "e"];
+    return { id: c.id + "-u" + Date.now().toString(36), custom: true, c: "Check the official website", r: 2, idea: pend.raw,
+      n: name, ll: ll || c.stay.ll, d: d || "Your own idea.", url, s: slots, h: tm.h || (far ? Math.max(3, Math.round(10 - (2 * xMins) / 60)) + " h" : "2 h"),
+      t: guessTags(name + " " + (d || "")), x: far ? `About ${Math.round(dist)} km from ${c.name.replace(/ \(.*\)/, "")} — check the best train or bus in Google Maps (roughly ${dur(xMins)} each way).` : undefined, xMins: far ? xMins : undefined,
+      tip: how === "nopin" ? "No map pin, so travel times are estimated from the city centre. Paste the place's map link or coordinates to make them exact."
+        : how === "near" ? `Placed near ${src} — approximate. Paste its map link or coordinates for exact times.`
+        : `Your idea${src ? " (found on " + src + ")" : ""} — check opening hours and tickets before you go.` };
+  }
+  // When nothing is found: copy-the-coordinates tip, put it near a landmark, or add it without a pin
+  function ideaFallback(i, pend, intro) {
+    const c = CITIES[state.stops[i].city], q = pend.subj || pend.raw;
+    ideaSay(i, intro + COORD_TIP + nearPicker(i, "own", c, q) +
+      `<button type="button" class="btn small hotelpick" data-act="ownnopin" data-i="${i}">Add “${esc(q)}” without a map pin<br><span class="hint">Times will be estimated from the city centre</span></button>`);
+  }
   function addIdea(i) {
     const st = state.stops[i], cid = st.city, c = CITIES[cid];
     const raw = ($("#ownname-" + i).value || "").trim();
-    const say = (h) => { ownMsg[cid] = h; const m = $("#ownmsg-" + i); if (m) m.innerHTML = h; };
+    const say = (h) => ideaSay(i, h);
     if (!raw) { $("#ownname-" + i).focus(); return; }
     const tm = ideaTiming(raw), subj = ideaSubject(raw, c), fs = fold(subj);
+    // the selectors win over what we read from the words
+    const durSel = ($("#owndur-" + i) || {}).value || "auto", whenSel = ($("#ownwhen-" + i) || {}).value || "auto";
+    if (durSel === "full") { tm.slot = "full"; tm.h = null; } else if (durSel !== "auto") tm.h = durSel;
+    if (whenSel !== "auto" && durSel !== "full") tm.slot = whenSel;
+    const pend = (ownPending[i] = { raw, subj, tm });
     const pasted = parseLL(raw);
     const keyOf = (n) => fold(n.split(/[:(&—,]/)[0].replace(/^the /i, "").trim());
-    const finish = (p, msg) => {
-      if (p.custom) { (state.custom[cid] = state.custom[cid] || []).push(p); syncCustomPlaces(); }
-      if (st.places.indexOf(p.id) < 0) st.places.push(p.id);
-      ownFound[cid] = "";
-      persist(); renderStops();
-      say(msg + " Press “Build / update my itinerary” to fit it into your days. Add another idea, or tap Done.");
-      toast(`Added to ${c.name}: ${p.n}`);
-    };
+    const finish = (p, msg) => ideaFinish(i, p, msg);
     const makeCustom = (o) => Object.assign({ id: cid + "-u" + Date.now().toString(36), custom: true, c: "Check the official website", r: 2, idea: raw }, o);
+    if (isShortMapLink(raw)) { ideaFallback(i, pend, SHORT_LINK_HELP); return; }
     if (!fs && !pasted) { say("Tell us a place or activity, e.g. “Day trip to Florence” or “Sunset at Montmartre”."); return; }
     // 1. Another city in the planner → a day trip there
     const wordIn = (k, txt) => new RegExp("(^|[^a-z])" + k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "($|[^a-z])").test(txt);
-    const cityHit = Object.keys(CITIES).filter((id) => id !== cid).find((id) => {
+    let cityHit = pasted ? null : Object.keys(CITIES).filter((id) => id !== cid).find((id) => {
       const k = keyOf(CITIES[id].name), l = CITIES[id].local ? keyOf(CITIES[id].local) : "";
       if (k === "nice" || k === "split") return new RegExp("\\b" + k.charAt(0).toUpperCase() + k.slice(1) + "\\b").test(raw); // ordinary words unless capitalised
       return (k.length > 3 && wordIn(k, fs)) || (l.length > 3 && wordIn(l, fs));
     });
+    // …but only when it reads as a trip ("day trip to Florence", "visit Bruges", or just "Florence"), not "Little Venice" in London
+    const tripWords = /\b(day ?trip|trip|visit|excursion|outing|go(ing)? to|head(ing)? to|over to|train to|bus to|ferry to|boat to|day in|day at|see)\b/;
+    const bare = (x) => keyOf(x).replace(/\b(to|in|the|a|day|for)\b/g, " ").replace(/\s+/g, " ").trim();
+    if (cityHit && !tripWords.test(fs) && bare(fs) !== bare(CITIES[cityHit].name.replace(/ \(.*\)/, "")) && !(CITIES[cityHit].local && bare(fs) === bare(CITIES[cityHit].local))) cityHit = null;
     if (cityHit) {
       const T = CITIES[cityHit], tr = dayTripTransport(cid, cityHit), tops = T.places.filter((p) => p.r === 3 && !p.x && !p.insta).slice(0, 3).map((p) => p.n.split(/[:(]/)[0].trim());
       const hours = Math.max(3, Math.round(10 - (2 * tr.mins) / 60));
@@ -5471,7 +5669,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       return;
     }
     // 2. A place we already know — in this city, or elsewhere (then it's a day trip)
-    if (fs.length >= 4) {
+    if (!pasted && fs.length >= 4) {
       const pool = [];
       Object.keys(CITIES).forEach((id) => CITIES[id].places.forEach((p) => { if (!p.custom) pool.push({ id, p }); }));
       // every distinctive word you typed must appear in the place's name
@@ -5488,21 +5686,14 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
         return;
       }
     }
-    // 3. Pasted map link or coordinates
-    const placeFromLL = (ll, name, d, url, src) => {
-      const dist = km(c.stay.ll, ll), far = dist > 15;
-      const xMins = Math.round(((dist * 1.3) / 60) * 60 + 30);
-      return makeCustom({ n: name, ll, d: d || "Your own idea.", url, s: tm.slot ? [tm.slot] : [far ? "full" : "e"], h: tm.h || (far ? Math.max(3, Math.round(10 - (2 * xMins) / 60)) + " h" : "2 h"),
-        t: guessTags(name + " " + (d || "")), x: far ? `About ${Math.round(dist)} km from ${c.name.replace(/ \(.*\)/, "")} — check the best train or bus in Google Maps (roughly ${dur(xMins)} each way).` : undefined, xMins: far ? xMins : undefined,
-        tip: `Your idea${src ? " (found on " + src + ")" : ""} — check opening hours and tickets before you go.` });
-    };
+    // 3. Pasted map link or coordinates (the name comes from the link or the words around it)
     if (pasted) {
       if (km(c.stay.ll, pasted) > 400) { say(`That location is ${Math.round(km(c.stay.ll, pasted))} km from ${esc(c.name)} — too far for a day trip. Check the link.`); return; }
-      const nm = raw.replace(/https?:\/\/\S+/g, "").replace(/-?\d+\.\d+\s*,\s*-?\d+\.\d+/, "").trim() || "My place";
-      finish(placeFromLL(pasted, nm, "", "", "your map link"), `✓ <b>${esc(nm)}</b> added at the location you pasted.`);
+      const nm = nameFromLink(raw, "My place (map pin)");
+      finish(ideaPlace(i, pend, pasted, nm, "", "", "your map link"), `✓ <b>${esc(nm)}</b> added at the location you pasted.`);
       return;
     }
-    // 4. Look it up: Wikipedia (description + location), then OpenStreetMap
+    // 4. Look it up: Wikipedia (description + location), then OpenStreetMap (pick from the matches)
     say("Looking it up…");
     const cityName = c.name.replace(/ \(.*\)/, "");
     const near = (ll) => ll && km(c.stay.ll, ll) < 400;
@@ -5514,14 +5705,19 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
           .catch(() => null)), Promise.resolve(null));
       })
       .catch(() => null)
-      .then((wp) => wp || getJSON("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=en&q=" + encodeURIComponent(subj + ", " + cityName))
-        .then((list) => { let hit = (list || []).map((x) => ({ x, ll: [+x.lat, +x.lon] })).filter((o) => near(o.ll)).sort((a, b) => km(c.stay.ll, a.ll) - km(c.stay.ll, b.ll))[0];
-          return hit ? { n: subj.replace(/\b\w/g, (ch) => ch.toUpperCase()), d: "", ll: hit.ll, src: "OpenStreetMap" } : null; })
-        .catch(() => null))
       .then((f) => {
-        if (!f) { say(`Couldn't find “${esc(subj)}” near ${esc(cityName)}. Check the spelling, add more detail (e.g. the area), or paste a Google Maps link with your idea.`); return; }
-        const p = placeFromLL(f.ll, f.n, f.d ? firstSentence(f.d) : "", f.url, f.src);
-        finish(p, `✓ <b>${esc(p.n)}</b> — found on ${esc(f.src)}, ${esc(fromCentre(c, f.ll))}${p.x ? " (planned as a day trip)" : ""}.`);
+        if (f) {
+          const p = ideaPlace(i, pend, f.ll, f.n, firstSentence(f.d), f.url, f.src);
+          finish(p, `✓ <b>${esc(p.n)}</b> — found on Wikipedia, ${esc(fromCentre(c, f.ll))}${p.x ? " (planned as a day trip)" : ""}.`);
+          return;
+        }
+        geoSearch(c, subj, (rows, why) => {
+          if (!rows || !rows.length) { ideaFallback(i, pend, why ? `<p class="hint">${why}</p>` : notFoundMsg(subj, c, "places")); return; }
+          if (rows.length === 1) { const r = rows[0]; finish(ideaPlace(i, pend, r.ll, r.name, r.addr, "", "OpenStreetMap"), `✓ <b>${esc(r.name)}</b> — found on OpenStreetMap, ${esc(fromCentre(c, r.ll))}.`); return; }
+          ownResults[i] = rows;
+          say(`<p class="hint">Pick the right place:</p>` + rows.map((r, k) => `<button type="button" class="btn small hotelpick" data-act="ownpick" data-i="${i}" data-k="${k}"><b>${esc(r.name)}</b><br><span class="hint">${esc(r.addr)} · ${esc(fromCentre(c, r.ll))}</span></button>`).join("") +
+            nearPicker(i, "own", c, subj) + `<button type="button" class="btn small hotelpick" data-act="ownnopin" data-i="${i}">None of these — add “${esc(subj)}” without a map pin</button>`);
+        });
       });
   }
   // Guess tags from the description so trip style and your wishes apply to it too
@@ -5536,45 +5732,105 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     return out.filter((v, k, a) => a.indexOf(v) === k);
   }
   // Which hotel you're staying in: one of our three picks, your own (found on the map), or not decided yet
+  const hotelResults = {};
   function hotelRow(st, i) {
     const c = CITIES[st.city], h = state.hotels[st.city] || {}, sel = h.pick || "";
+    const set = sel === "custom" && h.ll;
     return `<div class="row hotelrow"><label class="hint lbl" for="hotel-${i}">🏨 Your hotel in ${esc(c.name)}:</label>
       <select id="hotel-${i}" data-act="hotel" data-i="${i}">
         <option value="">Not booked yet — plan from ${esc(c.stay.area)}</option>
-        ${c.hotels.map((x) => `<option value="${x.tier}" ${sel === x.tier ? "selected" : ""}>${PICK_LABEL[x.tier]}: ${esc(x.n)} · ${esc(priceText(c, x))}</option>`).join("")}
-        <option value="custom" ${sel === "custom" ? "selected" : ""}>Another hotel (type its name)…</option>
+        <optgroup label="Our picks">${c.hotels.map((x) => `<option value="${x.tier}" ${sel === x.tier ? "selected" : ""}>${PICK_LABEL[x.tier]}: ${esc(x.n)} · ${esc(priceText(c, x))}</option>`).join("")}</optgroup>
+        <option value="custom" ${sel === "custom" ? "selected" : ""}>${set ? "📍 " + esc(h.n) : "Another hotel… (search or map link)"}</option>
       </select>
       ${sel === "custom" ? `<div class="custom-hotel">
-        <input type="text" id="hotelname-${i}" data-act="hotelname" data-i="${i}" placeholder="Hotel name, e.g. Hotel Lutetia" value="${esc(h.n || "")}" aria-label="Your hotel's name" autocomplete="off">
-        <button type="button" class="btn small" data-act="hotelfind" data-i="${i}">📍 Find on map</button>
-        <input type="text" id="hotelll-${i}" data-act="hotelll" data-i="${i}" placeholder="…or paste a Google Maps link or coordinates" aria-label="Google Maps link or coordinates" autocomplete="off">
-        <span class="hint" id="hotelmsg-${i}">${h.ll ? `📍 Found: ${esc(h.area || h.n)} — ${esc(fromCentre(c, h.ll))}.` : "Type the name and tap Find on map, or paste a Google Maps link (Share → Copy link) or coordinates."}</span></div>` : ""}
+        <input type="text" id="hotelq-${i}" placeholder="Hotel name, address or map link" aria-label="Find your hotel in ${esc(c.name)}" autocomplete="off">
+        <button type="button" class="btn small" data-act="hotelfind" data-i="${i}">📍 Find</button>
+        <div class="hotelres" id="hotelres-${i}" aria-live="polite"></div></div>` : ""}
+      ${set ? `<p class="hint hotelset">📍 Planning from <b>${esc(h.n)}</b>${h.src === "near" ? ` (placed near ${esc(h.near)} — approximate; paste its map link or coordinates for exact times)` : ""} · ${esc(fromCentre(c, h.ll))} · <a href="https://www.google.com/maps/search/?api=1&query=${h.ll[0]},${h.ll[1]}" target="_blank" rel="noopener">check the pin ↗</a></p>` : ""}
     </div>`;
   }
-  // "@48.85,2.29", "!3d48.85!4d2.29", "?q=48.85,2.29" or plain "48.85, 2.29"
+  // Coordinates in pasted text: Google "!3d48.85!4d2.29" (exact pin) or "@48.85,2.29", Apple "ll=48.85,2.29", plain "48.85, 2.29"
   function parseLL(t) {
-    const m = String(t).match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || String(t).match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
-      String(t).match(/[?&](?:q|query|ll|destination)=(-?\d+\.\d+)(?:,|%2C)\s*(-?\d+\.\d+)/i) || String(t).match(/(-?\d{1,2}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/);
-    return m ? [+m[1], +m[2]] : null;
+    const str = String(t);
+    const m = str.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || str.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+      str.match(/[?&](?:q|query|ll|sll|destination|coordinate|center)=(-?\d+\.\d+)(?:,|%2C)\s*(-?\d+\.\d+)/i) || str.match(/(-?\d{1,2}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/);
+    if (!m) return null;
+    const a = +m[1], b = +m[2];
+    return a > 30 && a < 72 && b > -30 && b < 50 ? [a, b] : null;
   }
-  function setHotelMsg(i, html) { const m = $("#hotelmsg-" + i); if (m) m.innerHTML = html; }
-  // Look the hotel up on OpenStreetMap (Nominatim), keeping only results near the city
-  function findHotel(i) {
-    const st = state.stops[i], c = CITIES[st.city];
-    const name = ($("#hotelname-" + i).value || "").trim();
-    if (!name) { setHotelMsg(i, "Type your hotel's name first."); $("#hotelname-" + i).focus(); return; }
-    setHotelMsg(i, "Searching the map…");
+  // A place name from a pasted map link: Apple "?q=Name", Google ".../place/Name/@…"; otherwise the text around the link
+  function nameFromLink(text, fallback) {
+    const t = String(text);
+    let m = t.match(/[?&]q=([^&#]+)/);
+    if (m) { const v = decodeURIComponent(m[1].replace(/\+/g, " ")).trim(); if (v && !/^[-\d.,\s]+$/.test(v)) return v; }
+    m = t.match(/\/place\/([^/@?]+)/);
+    if (m) { const v = decodeURIComponent(m[1].replace(/\+/g, " ")).trim(); if (v && !parseLL(v)) return v; }
+    const rest = t.replace(/https?:\/\/\S+/g, "").replace(/-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+/g, "").trim();
+    return rest || fallback;
+  }
+  // Share links that hide the location behind a redirect a web page can't follow
+  const isShortMapLink = (q) => /(maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/kgs|maps\.apple\/p\/|share\.google)/i.test(q);
+  const COORD_TIP = `<p class="hint"><b>Most reliable:</b> in Google Maps or Apple Maps, press and hold on the exact spot (the hotel's entrance). The coordinates appear, e.g. <i>48.8510, 2.3430</i> — tap to copy them and paste them here. Or open the link in your browser and copy the long address from the address bar.</p>`;
+  const SHORT_LINK_HELP = `<p class="hint"><b>That's a short share link</b> (like maps.app.goo.gl/…). It doesn't contain the location — it only points to Google or Apple, and a web page can't follow it. Instead:</p>` + COORD_TIP;
+  // Put a hotel or place near a known landmark when it can't be found
+  function nearPicker(i, kind, c, q) {
+    const opts = [`<option value="stay">${esc(c.stay.area)} (recommended area)</option>`]
+      .concat(c.places.filter((p) => !p.custom && !p.x && !p.insta).map((p) => `<option value="${p.id}">${esc(p.n.split(/[:(]/)[0].trim())}</option>`)).join("");
+    return `<div class="nearpick"><label class="hint" for="${kind}near-${i}">Or put ${q ? "“" + esc(q) + "”" : "it"} near (approximate):</label>
+      <select id="${kind}near-${i}">${opts}</select><button type="button" class="btn small" data-act="${kind}near" data-i="${i}">Use this</button></div>`;
+  }
+  function nearChoice(i, kind) {
+    const c = CITIES[state.stops[i].city], v = $("#" + kind + "near-" + i).value;
+    const p = v === "stay" ? null : c.places.find((x) => x.id === v);
+    return { ll: p ? p.ll : c.stay.ll, label: p ? p.n.split(/[:(]/)[0].trim() : c.stay.area };
+  }
+  // Fetch JSON, giving up after 12 s so a slow connection can't leave a lookup hanging
+  function getJSON(u) {
+    const ctl = window.AbortController ? new AbortController() : null;
+    const t = setTimeout(() => ctl && ctl.abort(), 12000);
+    return fetch(u, Object.assign({ headers: { Accept: "application/json" } }, ctl ? { signal: ctl.signal } : {}))
+      .then((r) => { clearTimeout(t); if (!r.ok) throw new Error("http " + r.status); return r.json(); }, (e) => { clearTimeout(t); throw e; });
+  }
+  // OpenStreetMap search near the city, then a wider search if nothing turns up
+  function geoSearch(c, q, cb) {
     const [la, lo] = c.stay.ll;
-    const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&accept-language=en&q=" + encodeURIComponent(name + ", " + (c.local || c.name).replace(/ \(.*\)/, "")) +
-      `&viewbox=${lo - 0.5},${la + 0.35},${lo + 0.5},${la - 0.35}`;
-    fetch(url, { headers: { Accept: "application/json" } }).then((r) => r.json()).then((list) => {
-      const near = (list || []).map((x) => ({ x, d: km(c.stay.ll, [+x.lat, +x.lon]) })).filter((o) => o.d < 45).sort((a, b) => a.d - b.d);
-      if (!near.length) { setHotelMsg(i, `Couldn't find “${esc(name)}” near ${esc(c.name)}. Check the spelling, add the street name, or paste a Google Maps link instead.`); return; }
-      const best = near.find((o) => /hotel|guest_house|hostel|apartment|motel|tourism/i.test(o.x.type + " " + o.x.category)) || near[0];
-      state.hotels[st.city] = { pick: "custom", n: name, ll: [+best.x.lat, +best.x.lon], area: best.x.display_name.split(",").slice(0, 3).join(",").trim() };
-      persist(); renderStops();
-      toast(`Found ${name}. Press “Build / update my itinerary” to re-plan ${c.name} from it.`);
-    }).catch(() => setHotelMsg(i, "The map search needs internet. You can paste a Google Maps link or coordinates instead."));
+    const base = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=en";
+    const near = base + "&bounded=1&viewbox=" + [lo - 0.5, la + 0.35, lo + 0.5, la - 0.35].join(",") + "&q=" + encodeURIComponent(q);
+    const wide = base + "&q=" + encodeURIComponent(q + ", " + (c.local || c.name).replace(/ \(.*\)/, "") + ", " + ctry(c.id).name);
+    let done = false;
+    const finish = (rows, why) => { if (done) return; done = true; cb(rows, why); };
+    setTimeout(() => finish(null, "The search took too long."), 15000);
+    const get = (u) => fetch(u, { headers: { Accept: "application/json" } }).then((r) => r.json());
+    const tidy = (rows) => (rows || []).map((r) => ({ name: r.name || String(r.display_name).split(",")[0], addr: String(r.display_name).split(",").slice(0, 4).join(","), ll: [+r.lat, +r.lon] })).filter((r) => km(r.ll, c.stay.ll) < 80);
+    get(near).then((rows) => { const a = tidy(rows); return a.length ? a : new Promise((res) => setTimeout(res, 1100)).then(() => get(wide)).then(tidy); })
+      .then((a) => finish(a, null))
+      .catch(() => finish(null, "Couldn't reach the map search (it needs an internet connection)."));
+  }
+  const notFoundMsg = (q, c, what) => `<p class="hint">No match for “${esc(q)}” on OpenStreetMap near ${esc(c.name)}. Many ${what} aren't listed there, or are listed under another name — try the official name, the street address, or paste its map link.</p>`;
+  // Save the traveller's own hotel and re-plan straight away
+  function setHotel(i, h) {
+    const c = CITIES[state.stops[i].city], d = km(h.ll, c.stay.ll);
+    if (d > 80) { toast(`That spot is ${Math.round(d)} km from ${c.name}. Check it's the right place, or paste the hotel's map link.`); return; }
+    state.hotels[c.id] = Object.assign({ pick: "custom" }, h);
+    persist(); renderStops();
+    if (d > 25) toast(`Saved, but it's ${Math.round(d)} km from central ${c.name}: double-check the pin.`);
+    if (lastPlan) { generate(false); if (d <= 25) toast(`Plan updated: times and directions in ${c.name} now start from ${h.n}.`); }
+    else if (d <= 25) toast(`${h.n} saved. Press “Build / update my itinerary” to plan from it.`);
+  }
+  function findHotel(i) {
+    const c = CITIES[state.stops[i].city];
+    const q = ($("#hotelq-" + i).value || "").trim();
+    const box = $("#hotelres-" + i);
+    if (!q) { toast("Type the hotel's name or address, or paste its map link or coordinates."); return; }
+    const ll = parseLL(q);
+    if (ll) { setHotel(i, { n: nameFromLink(q, "My hotel (map pin)"), ll, area: "map pin", src: "pin" }); return; }
+    if (isShortMapLink(q)) { box.innerHTML = SHORT_LINK_HELP + nearPicker(i, "hotel", c, ""); return; }
+    box.innerHTML = `<p class="hint">Searching OpenStreetMap near ${esc(c.name)}…</p>`;
+    geoSearch(c, q, (rows, why) => {
+      if (!rows || !rows.length) { box.innerHTML = (why ? `<p class="hint">${why}</p>` : notFoundMsg(q, c, "hotels")) + COORD_TIP + nearPicker(i, "hotel", c, q); return; }
+      hotelResults[i] = rows;
+      box.innerHTML = `<p class="hint">Pick your hotel:</p>` + rows.map((r, k) => `<button type="button" class="btn small hotelpick" data-act="hotelpick" data-i="${i}" data-k="${k}"><b>${esc(r.name)}</b><br><span class="hint">${esc(r.addr)} · ${esc(fromCentre(c, r.ll))}</span></button>`).join("") + nearPicker(i, "hotel", c, q);
+    });
   }
 
   // Last leg, when you fly home from a city that isn't your last stop
@@ -5679,9 +5935,14 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       if ((act === "up" || act === "down") && state.optimise && !state.keepOrder) { state.keepOrder = true; toast("Your city order is kept; transport is still recommended. Tick the box in step 4 again to re-sort the cities."); }
       if (act === "quick") { addCity(b.dataset.city); return; }
       if (act === "hotelfind") { findHotel(i); return; }
+      if (act === "hotelpick") { const r = (hotelResults[i] || [])[+b.dataset.k]; if (r) setHotel(i, { n: r.name, ll: r.ll, area: r.addr, src: "search" }); return; }
+      if (act === "hotelnear") { const q = ($("#hotelq-" + i).value || "").trim(), nc = nearChoice(i, "hotel"); setHotel(i, { n: q && !isShortMapLink(q) ? q : "My hotel", ll: nc.ll, area: "near " + nc.label, src: "near", near: nc.label }); return; }
       if (act === "ownopen") { ownOpen[state.stops[i].city] = true; renderStops(); const n = $("#ownname-" + i); if (n) n.focus(); return; }
       if (act === "ownclose") { const cid = state.stops[i].city; ownOpen[cid] = false; delete ownFound[cid]; delete ownMsg[cid]; renderStops(); return; }
       if (act === "ownfind") { addIdea(i); return; }
+      if (act === "ownpick") { const r = (ownResults[i] || [])[+b.dataset.k], pend = ownPending[i]; if (r && pend) ideaFinish(i, ideaPlace(i, pend, r.ll, r.name, r.addr, "", "OpenStreetMap"), `✓ <b>${esc(r.name)}</b> added.`); return; }
+      if (act === "ownnear") { const pend = ownPending[i]; if (!pend) return; const nc = nearChoice(i, "own"), nm = pend.raw.trim().replace(/^./, (ch) => ch.toUpperCase()); ideaFinish(i, ideaPlace(i, pend, nc.ll, nm, "", "", nc.label, "near"), `✓ <b>${esc(nm)}</b> added near ${esc(nc.label)} (approximate).`); return; }
+      if (act === "ownnopin") { const pend = ownPending[i]; if (!pend) return; const nm = pend.raw.trim().replace(/^./, (ch) => ch.toUpperCase()); ideaFinish(i, ideaPlace(i, pend, null, nm, "", "", "", "nopin"), `✓ <b>${esc(nm)}</b> added without a map pin — times are estimated from the city centre.`); return; }
       if (act === "up" && i > 0) [state.stops[i - 1], state.stops[i]] = [state.stops[i], state.stops[i - 1]];
       else if (act === "down" && i < state.stops.length - 1) [state.stops[i + 1], state.stops[i]] = [state.stops[i], state.stops[i + 1]];
       else if (act === "addtop") {
@@ -5724,16 +5985,6 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
         return;
       }
       if (t.id && /^ownname-\d+$/.test(t.id)) { ownFound[state.stops[+t.id.split("-")[1]].city] = t.value; return; }
-      if (t.dataset.act === "hotelname") { const cid = state.stops[+t.dataset.i].city, h = state.hotels[cid]; if (h) { if (h.n !== t.value.trim()) h.ll = null; h.n = t.value.trim(); persist(); setHotelMsg(+t.dataset.i, "Now tap Find on map, or paste a Google Maps link."); } return; }
-      if (t.dataset.act === "hotelll") {
-        const i = +t.dataset.i, cid = state.stops[i].city, h = state.hotels[cid] || (state.hotels[cid] = { pick: "custom" });
-        const ll = parseLL(t.value);
-        if (!ll) { setHotelMsg(i, /goo\.gl|maps\.app/.test(t.value) ? "Short links can't be read. In Google Maps, long-press your hotel's pin and copy the coordinates shown at the top, then paste them here." : "That doesn't look like a Google Maps link or coordinates (e.g. 48.8510, 2.3430)."); return; }
-        if (km(CITIES[cid].stay.ll, ll) > 45) { setHotelMsg(i, `Those coordinates are ${Math.round(km(CITIES[cid].stay.ll, ll))} km from ${esc(CITIES[cid].name)} — please check them.`); return; }
-        h.ll = ll; h.n = h.n || ($("#hotelname-" + i).value || "").trim() || "My hotel"; h.area = "pinned location";
-        persist(); renderStops(); toast(`Location saved. Press “Build / update my itinerary” to re-plan ${CITIES[cid].name} from it.`);
-        return;
-      }
       if (t.id === "audOn" || t.id === "eurAud") { if (t.id === "eurAud") state.eurAudSet = Math.abs(parseFloat(t.value) - FX.eurAud) > 0.004; readForm(); persist(); renderStops(); if (lastPlan) generate(false); return; }
       if (t.dataset.act === "place" && t.value) { state.stops[+t.dataset.i].places.push(t.value); persist(); renderStops(); return; }
       if (t.dataset.act === "legdep" || t.dataset.act === "legarr" || t.dataset.act === "legmode") {
@@ -5756,7 +6007,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     $("#wishes").addEventListener("input", () => { showWishes(); state.wishes = $("#wishes").value.trim(); persist(); renderStops(); });
     $("#planner").addEventListener("keydown", (e) => {
       if (e.key !== "Enter" || !e.target.id) return;
-      const m = e.target.id.match(/^(ownname|hotelname)-(\d+)$/);
+      const m = e.target.id.match(/^(ownname|hotelq)-(\d+)$/);
       if (m) { e.preventDefault(); if (m[1] === "ownname") addIdea(+m[2]); else findHotel(+m[2]); }
     });
     $("#planner").addEventListener("submit", (e) => {
@@ -6194,6 +6445,144 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
   }
 
   // "At a glance": one row per day, built from each day's (possibly edited) timeline
+  /* ---------- weather: typical (climate averages) for each date, or a live forecast within ~2 weeks ---------- */
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const isoDate = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  // Monthly averages sit mid-month; days in between are blended with the neighbouring month
+  function typicalFor(cid, date) {
+    const c = CLIMATE[cid];
+    if (!c || !date) return null;
+    const m = date.getMonth(), dim = new Date(date.getFullYear(), m + 1, 0).getDate();
+    const pos = (date.getDate() - 15) / dim, f = Math.abs(pos), m2 = pos >= 0 ? (m + 1) % 12 : (m + 11) % 12;
+    const mix = (a) => a[m] * (1 - f) + a[m2] * f;
+    return { hi: mix(c.hi), lo: mix(c.lo), rain: mix(c.rain) / 30, mtn: c.mtn || "" };
+  }
+  const forecastCache = {};
+  const wxIcon = (code) => (code === 0 ? "☀️" : code <= 2 ? "🌤" : code === 3 ? "☁️" : code === 45 || code === 48 ? "🌫" : code >= 71 && code <= 77 ? "❄️" : code >= 95 ? "⛈" : code >= 80 ? "🌦" : code >= 51 ? "🌧" : "🌤");
+  const climIcon = (t) => (t.lo <= -3 ? "🥶" : t.rain >= 0.45 ? "🌦" : t.hi >= 30 ? "☀️" : t.hi <= 8 ? "🧥" : "🌤");
+  function weatherFor(cid, date) {
+    if (!date) return null;
+    const f = forecastCache[cid + "|" + isoDate(date)];
+    const mtn = (CLIMATE[cid] && CLIMATE[cid].mtn) || "";
+    if (f) return { src: "forecast", hi: f.hi, lo: f.lo, rain: f.pp / 100, icon: wxIcon(f.code), mtn };
+    const t = typicalFor(cid, date);
+    return t ? Object.assign({ src: "typical", icon: climIcon(t) }, t) : null;
+  }
+  const deg = (v) => Math.round(v) + "°C";
+  const rainWords = (p) => (p >= 0.6 ? "rain likely" : p >= 0.35 ? "showers possible" : p >= 0.15 ? "small chance of rain" : "rain unlikely");
+  // What to wear for a day's high, low and chance of rain
+  function attire(hi, lo, rain) {
+    const out = [];
+    if (hi >= 30) out.push("light, loose, breathable clothes (thin long sleeves keep you covered and cool)", "sun hat, sunglasses and SPF 50");
+    else if (hi >= 24) out.push("light clothes", "a thin layer for evenings and air-conditioning");
+    else if (hi >= 17) out.push("long sleeves", "a light jacket or cardigan");
+    else if (hi >= 10) out.push("a sweater or fleece", "a medium jacket");
+    else if (hi >= 4) out.push("a warm coat", "layers with a thermal top", "a scarf");
+    else out.push("a down jacket", "thermal underwear", "hat, gloves and scarf", "warm, grippy boots for icy pavements");
+    if (lo <= 0 && hi >= 4) out.push("gloves and a hat for mornings and evenings");
+    if (rain >= 0.4) out.push("a compact umbrella or rain jacket", "water-resistant shoes");
+    else if (rain >= 0.2) out.push("a compact umbrella");
+    return out;
+  }
+  const attireShort = (hi, lo, rain) => {
+    const b = hi >= 30 ? "Light & breathable, sun hat" : hi >= 24 ? "Light clothes + thin layer" : hi >= 17 ? "Long sleeves + light jacket" : hi >= 10 ? "Sweater + jacket" : hi >= 4 ? "Warm coat, layers, scarf" : "Down jacket, thermals, hat & gloves";
+    return b + (rain >= 0.4 ? " · rain gear" : rain >= 0.2 ? " · umbrella" : "");
+  };
+  // Extra items for what's planned that day
+  const HIGH_PLACES = /jungfrau|titlis|pilatus|schilthorn|grindelwald first|harder kulm|rigi|zugspitze|uetliberg|trebević|holmenkollen|fløyen|dajti/i;
+  function dayExtras(day) {
+    const ps = day.slots.filter((s) => s.type === "act").map((s) => s.p), out = [];
+    if (ps.some((p) => p.t.indexOf("adventure") >= 0 || p.t.indexOf("nature") >= 0 || p.s.indexOf("full") >= 0)) out.push("comfortable, grippy walking shoes (cobblestones and hills)");
+    if (ps.some((p) => HIGH_PLACES.test(p.n))) out.push("a warm jacket, gloves and sunglasses for the mountain top");
+    if (ps.some((p) => /mosque|hagia sophia|mezquita/i.test(p.n))) out.push("modest clothes for the mosque (women: headscarf, arms and legs covered)");
+    if (ps.some((p) => /basilica|cathedral|church|vatican|duomo|st peter|st mark|sagrada|abbey|monastery/i.test(p.n))) out.push("shoulders and knees covered for churches");
+    if (ps.some((p) => /cruise|boat|ferry|gondola|lagoon|canal tour|island/i.test(p.n))) out.push("a light layer for the breeze on the water");
+    if (ps.some((p) => /bath|lagoon|spa\b|hammam|beach|swim/i.test(p.n + " " + p.d))) out.push("swimwear (a burkini is fine at most pools — check locally)");
+    return out;
+  }
+  function wxData(day) {
+    const w = weatherFor(day.cityId, day.date);
+    if (!w) return null;
+    return { w, am: w.lo + 0.35 * (w.hi - w.lo), night: w.lo + 0.25 * (w.hi - w.lo), wear: attire(w.hi, w.lo, w.rain).concat(dayExtras(day)) };
+  }
+  function wxLine(day) {
+    const x = wxData(day);
+    if (!x) return `<div class="wx muted"><span class="wx-ic">🌤</span><span>Add a start date (step 4) to see the expected weather and what to wear each day.</span></div>`;
+    const w = x.w, high = day.slots.some((s) => s.type === "act" && HIGH_PLACES.test(s.p.n));
+    return `<div class="wx"><span class="wx-ic" aria-hidden="true">${w.icon}</span><span><b>${w.src === "forecast" ? "Forecast" : "Typical"} for ${fmtDate(day.date)} in ${esc(day.city.name)}:</b> morning ~${deg(x.am)}, afternoon ~${deg(w.hi)}, night ~${deg(x.night)} · ${rainWords(w.rain)}${w.src === "forecast" ? ' <span class="badge rec">live forecast</span>' : ""}${high && w.mtn ? `<br>⛰ ${esc(w.mtn)}` : ""}<br><b>Wear:</b> ${esc(x.wear.join(", "))}.</span></div>`;
+  }
+  const wxPlain = (day) => { const x = wxData(day); return x ? `${x.w.src === "forecast" ? "Forecast" : "Typical"}: morning ~${deg(x.am)}, afternoon ~${deg(x.w.hi)}, night ~${deg(x.night)}, ${rainWords(x.w.rain)}. Wear: ${x.wear.join(", ")}.` : ""; };
+  const wxCell = (d) => { const w = weatherFor(d.cityId, d.date); return w ? `${w.icon} ${Math.round(w.hi)}° / ${Math.round(w.lo)}°` : "—"; };
+
+  // Consecutive days in the same city
+  function citySegments(plan) {
+    const segs = [];
+    plan.days.forEach((d) => { const last = segs[segs.length - 1]; if (last && last.cid === d.cityId) last.days.push(d); else segs.push({ cid: d.cityId, city: d.city, days: [d] }); });
+    return segs;
+  }
+  function segWeather(seg) {
+    const ws = seg.days.map((d) => weatherFor(d.cityId, d.date)).filter(Boolean);
+    if (!ws.length) return null;
+    const avg = (k) => ws.reduce((a, w) => a + w[k], 0) / ws.length;
+    const lo = Math.min.apply(null, ws.map((w) => w.lo)), rain = Math.max.apply(null, ws.map((w) => w.rain));
+    const extras = [];
+    seg.days.forEach((d) => dayExtras(d).forEach((e) => { if (extras.indexOf(e) < 0) extras.push(e); }));
+    return { hi: avg("hi"), lo, rain, forecast: ws.some((w) => w.src === "forecast"), mtn: ws[0].mtn, pack: attire(avg("hi"), lo, rain).concat(extras) };
+  }
+
+  function weatherHTML(plan) {
+    const segs = citySegments(plan);
+    const dated = !!state.start;
+    const range = (seg) => seg.days.length > 1 ? `${fmtDate(seg.days[0].date)} – ${fmtDate(seg.days[seg.days.length - 1].date)}` : fmtDate(seg.days[0].date);
+    const summary = dated ? `<section class="panel"><h3>Your trip at a glance</h3>
+      <p class="hint">Typical weather for your dates from long-term averages${segs.some((s) => (segWeather(s) || {}).forecast) ? ", with live forecasts where your dates are within about two weeks" : ""}. Check a forecast a few days before you go.</p>
+      <div class="tbl-wrap"><table class="wxsum"><thead><tr><th>City</th><th>Dates</th><th>Day / night</th><th>Rain</th><th>What to pack</th></tr></thead><tbody>
+      ${segs.map((s) => { const w = segWeather(s); return w ? `<tr><td><b>${flagOf(s.cid)} ${esc(s.city.name)}</b></td><td class="g-date">${range(s)}</td><td>${deg(w.hi)} / ${deg(w.lo)}</td><td>${rainWords(w.rain)}</td><td>${esc(w.pack.join(", "))}${w.mtn ? `<br><span class="hint">⛰ ${esc(w.mtn)}</span>` : ""}</td></tr>` : ""; }).join("")}
+      </tbody></table></div></section>`
+      : `<section class="panel"><h3>Your trip at a glance</h3><p>Add a <b>start date</b> in step 4 to see the weather for your dates, day by day, with what to wear. Until then, the tables below show each city month by month.</p></section>`;
+    const tripMonths = (cid) => { const o = {}; plan.days.forEach((d) => { if (d.cityId === cid && d.date) o[d.date.getMonth()] = 1; }); return o; };
+    const cities = segs.map((x) => x.cid).filter((v, i, a) => a.indexOf(v) === i);
+    const panels = cities.map((cid) => {
+      const c = CLIMATE[cid], tm = tripMonths(cid);
+      if (!c) return "";
+      return `<section class="panel"><h3>${flagOf(cid)} ${esc(CITIES[cid].name)} <span class="loc">${esc(ctry(cid).name)}</span></h3>
+        <ul>${(c.notes || []).map(([ms, t]) => `<li><b>${ms.map((m) => MONTHS[m - 1]).join(", ")}:</b> ${esc(t)}</li>`).join("")}${c.mtn ? `<li><b>⛰ Up high:</b> ${esc(c.mtn)}</li>` : ""}</ul>
+        <div class="tbl-wrap"><table class="wxmon"><thead><tr><th>Month</th><th>High / low</th><th>Rainy days</th><th>What to wear</th></tr></thead><tbody>
+        ${c.hi.map((hi, m) => `<tr class="${tm[m] ? "trip" : ""}"><td><b>${MONTHS[m]}</b>${tm[m] ? ' <span class="badge pick">your trip</span>' : ""}</td><td>${hi}° / ${c.lo[m]}°C</td><td>${c.rain[m]}</td><td>${esc(attireShort(hi, c.lo[m], c.rain[m] / 30))}</td></tr>`).join("")}
+        </tbody></table></div></section>`;
+    }).join("");
+    const always = `<section class="panel"><h3>Pack for every city</h3><ul>
+      <li><b>Comfortable, grippy walking shoes</b> — 15–25,000 steps a day on cobblestones, stairs and hills.</li>
+      <li><b>Modest clothing</b> for churches and mosques: shoulders and knees covered (the Vatican, St Mark's and Sagrada Família turn people away); a headscarf for women in mosques.</li>
+      <li><b>Layers</b> — mornings and evenings are cooler than the afternoon, and trains and museums are air-conditioned.</li>
+      <li><b>A compact umbrella</b> — it doubles as a sunshade in southern summers.</li>
+      <li>Sunscreen, sunglasses, a refillable bottle (tap water is safe almost everywhere), and a small day bag that zips (pickpockets).</li></ul>
+      <p class="hint">Temperatures are long-term averages for each date (a typical day), not forecasts — real days can be several degrees warmer or colder. Southern Europe's summer heatwaves now often exceed these averages by 5–10°C.</p></section>`;
+    return summary + panels + always;
+  }
+
+  // Live forecast (Open-Meteo, free, no key) when the trip starts within ~2 weeks
+  const forecastAsked = {};
+  function fetchForecasts(plan) {
+    if (window.NO_PRINT || !plan || !state.start || typeof fetch !== "function") return;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const soon = plan.days.filter((d) => d.date && (d.date - today) / 86400000 >= -1 && (d.date - today) / 86400000 <= 15);
+    const cids = soon.map((d) => d.cityId).filter((v, i, a) => a.indexOf(v) === i && !forecastAsked[v]);
+    if (!cids.length) return;
+    let pending = cids.length, added = false;
+    cids.forEach((cid) => {
+      forecastAsked[cid] = true;
+      const ll = CITIES[cid].stay.ll;
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${ll[0]}&longitude=${ll[1]}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=auto&forecast_days=16`)
+        .then((r) => r.json()).then((j) => {
+          const d = j && j.daily;
+          if (!d || !d.time) return;
+          d.time.forEach((t, k) => { if (d.temperature_2m_max[k] != null) { forecastCache[cid + "|" + t] = { hi: d.temperature_2m_max[k], lo: d.temperature_2m_min[k], pp: d.precipitation_probability_max[k] || 0, code: d.weather_code[k] }; added = true; } });
+        }).catch(() => { /* offline or blocked: averages stay */ })
+        .then(() => { if (--pending === 0 && added && lastPlan === plan) generate(false); });
+    });
+  }
+
   // One row per day for the At a glance table — interactive on screen, plain in the printout/PDF
   function glanceRows(plan, print) {
     const show = { sight: 1, travel: 1, flight: 1, custom: 1, shop: 0, rest: 1, free: 1, prayer: 0, meal: 0, cafe: 0, photo: 0, breakfast: 0, hotel: 0 };
@@ -6210,13 +6599,14 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       const kind = KIND[d.kind] ? `<span class="kind-chip">${KIND[d.kind]}</span>` : "";
       if (print) {
         const h = hotelOf(d.cityId);
-        return `<tr><td><b>${i + 1}</b></td><td>${d.date ? fmtDate(d.date) : "—"}</td><td><b class="nowrap">${flagOf(d.cityId)} ${esc(d.city.name)}</b>${KIND[d.kind] ? `<br><i>${KIND[d.kind]}</i>` : ""}</td>
+        return `<tr><td><b>${i + 1}</b></td><td>${d.date ? fmtDate(d.date) : "—"}</td><td class="nowrap">${wxCell(d)}</td><td><b class="nowrap">${flagOf(d.cityId)} ${esc(d.city.name)}</b>${KIND[d.kind] ? `<br><i>${KIND[d.kind]}</i>` : ""}</td>
           <td>${cell(part(0, 12 * 60 + 30))}</td><td>${cell(cont(12 * 60 + 30).concat(part(12 * 60 + 30, 18 * 60 + 30)))}</td><td>${cell(part(18 * 60 + 30, 24 * 60))}</td>
           <td>${d.kind === "depart" ? "✈ Home" : h.chosen ? esc(h.n) : esc(d.city.name)}</td></tr>`;
       }
       return `<tr data-goto="day-${i + 1}" tabindex="0" role="link" aria-label="Go to day ${i + 1}">
         <td class="g-day"><b>${i + 1}</b></td>
         <td class="g-date">${d.date ? fmtDate(d.date) : "—"}</td>
+        <td class="g-wx">${wxCell(d)}</td>
         <td><b>${esc(d.city.name)}</b> ${ctry(d.cityId).flag}${kind}${isEdited(d, i) ? '<span class="kind-chip edited">edited</span>' : ""}</td>
         <td>${cell(part(0, 12 * 60 + 30))}</td><td>${cell(cont(12 * 60 + 30).concat(part(12 * 60 + 30, 18 * 60 + 30)))}</td><td>${cell(part(18 * 60 + 30, 24 * 60))}</td>
         <td class="g-sleep">${d.kind === "depart" ? "✈ Home" : hotelOf(d.cityId).chosen ? esc(hotelOf(d.cityId).n) : esc(d.city.name)}</td></tr>`;
@@ -6229,7 +6619,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     return `<section class="panel glance">
       <h3>At a glance</h3>
       ${state.start ? "" : `<p class="hint">Add a start date (step 4) to see the dates and weekdays here.</p>`}
-      <div class="tbl-wrap"><table><thead><tr><th>Day</th><th>Date</th><th>City</th><th>Morning</th><th>Afternoon</th><th>Evening</th><th>Sleep in</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Day</th><th>Date</th><th>Weather</th><th>City</th><th>Morning</th><th>Afternoon</th><th>Evening</th><th>Sleep in</th></tr></thead><tbody>${rows}</tbody></table></div>
       <p class="hint">Tap a day to jump to its hour-by-hour plan, where you can edit times and add or remove anything.</p>
     </section>`;
   }
@@ -6351,7 +6741,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     </div>`;
 
     const tabs = `<div class="tabs" role="tablist">
-      ${[["plan", "Day by day"], ["map", "Map"], ["stay", "Hotels, food & cafés"], ["prep", "Before you go"], ["talk", "Phrases"]].map(([id, l]) => `<button type="button" role="tab" id="tab-${id}" aria-selected="${currentTab === id}" aria-controls="pane-${id}" data-tab="${id}">${l}</button>`).join("")}
+      ${[["plan", "Day by day"], ["map", "Map"], ["wx", "Weather & what to wear"], ["stay", "Hotels, food & cafés"], ["prep", "Before you go"], ["talk", "Phrases"]].map(([id, l]) => `<button type="button" role="tab" id="tab-${id}" aria-selected="${currentTab === id}" aria-controls="pane-${id}" data-tab="${id}">${l}</button>`).join("")}
     </div>`;
 
     // Day by day
@@ -6368,6 +6758,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       html += `<article class="day" id="day-${i + 1}" data-cur="${curOf(day.cityId)}">
         <div class="day-num"><div class="stamp">${i + 1}</div><small>Day ${i + 1}${day.date ? "<br>" + fmtDate(day.date) : ""}</small></div>
         <div class="day-body"><h4 class="day-title"><span class="dflag">${flagOf(day.cityId)}</span> ${esc(dayTitle(day))}${KIND[day.kind] ? `<span class="kind">${KIND[day.kind]}</span>` : ""}</h4>
+          ${wxLine(day)}
           <div class="tl" id="tl-${i}">${timelineHTML(i)}</div>
           <h5 class="details-h">Details, directions, halal food & photo spots</h5>
           ${day.slots.map((s) => slotHTML(s, day)).join("")}
@@ -6380,6 +6771,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     out.innerHTML = hdr + tabs +
       `<div id="pane-plan" role="tabpanel" aria-labelledby="tab-plan" class="out" ${currentTab !== "plan" ? "hidden" : ""}><h2 class="print-only">Day-by-day itinerary</h2>${html}</div>
        <div id="pane-map" role="tabpanel" aria-labelledby="tab-map" class="out" ${currentTab !== "map" ? "hidden" : ""}><h2 class="print-only">Map</h2>${mapPaneHTML(plan)}</div>
+       <div id="pane-wx" role="tabpanel" aria-labelledby="tab-wx" class="out" ${currentTab !== "wx" ? "hidden" : ""}><h2 class="print-only">Weather & what to wear</h2>${weatherHTML(plan)}</div>
        <div id="pane-stay" role="tabpanel" aria-labelledby="tab-stay" class="out" ${currentTab !== "stay" ? "hidden" : ""}><h2 class="print-only">Hotels, halal food, cafés & photo spots</h2>${stayHTML(ids)}</div>
        <div id="pane-prep" role="tabpanel" aria-labelledby="tab-prep" class="out" ${currentTab !== "prep" ? "hidden" : ""}><h2 class="print-only">Before you go</h2>${prepHTML(routeIds, zones)}</div>
        <div id="pane-talk" role="tabpanel" aria-labelledby="tab-talk" class="out" ${currentTab !== "talk" ? "hidden" : ""}><h2 class="print-only">Phrases</h2>${phrasesHTML(langs)}</div>
@@ -6389,6 +6781,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     plan.days.forEach((d, i) => { if (isEdited(d, i)) { const pids = new Set(timelineFor(d, i).map((x) => x.pid).filter(Boolean)); document.querySelectorAll(`#day-${i + 1} .slot[data-pid]`).forEach((sl) => (sl.hidden = !pids.has(sl.dataset.pid))); } });
     if (currentTab === "map") showStreetMap();
     lastPrintArgs = { ids, routeIds, arrId, depId, langs, zones, startD, endD, notes };
+    fetchForecasts(plan);
     buildPrintView(plan, lastPrintArgs);
     if (scroll) out.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -7140,7 +7533,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
 
     // 1. Overview: the At a glance table (long trips continue on the next page), then the trip notes on their own page
     const gRows = glanceRows(plan, true), PER = 16;
-    const gTable = (rows) => `<table class="pv-tbl pv-glance"><thead><tr><th>Day</th><th>Date</th><th>City</th><th>Morning</th><th>Afternoon</th><th>Evening</th><th>Sleep in</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
+    const gTable = (rows) => `<table class="pv-tbl pv-glance"><thead><tr><th>Day</th><th>Date</th><th>Weather</th><th>City</th><th>Morning</th><th>Afternoon</th><th>Evening</th><th>Sleep in</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
     const chunks = [];
     for (let k = 0; k < gRows.length; k += PER) chunks.push(gRows.slice(k, k + PER));
     // avoid a lonely last page of one or two days
@@ -7167,6 +7560,7 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
       const mine = hotelOf(d.cityId);
       pages.push(`<div data-cur="${curOf(d.cityId)}">${head(`Day ${i + 1} · ${esc(d.city.name)} ${ctry(d.cityId).flag}`, (d.date ? fmtDate(d.date) + " · " : "") + (KIND[d.kind] || "Sightseeing"))}
         <p class="pv-sub">${esc(dayTitle(d))}</p>
+        ${d.date ? `<p class="pv-meta">${(weatherFor(d.cityId, d.date) || {}).icon || "🌤"} ${esc(wxPlain(d))}</p>` : ""}
         ${firstInCity ? `<p class="pv-stay">${mine.chosen ? `<b>Your hotel:</b> ${esc(mine.n)}.` : `<b>Stay:</b> ${esc(d.city.stay.area)} — e.g. ${esc(hotel.n)}.`} <b>Halal near hotel:</b> ${esc(eatNear(d.city, mine.ll, 2).located.map((h) => h.n).join("; ") || d.city.halalTip)} <b>Cafés:</b> ${esc((d.city.cafes || []).slice(0, 3).map((c) => c.n).join("; "))}</p>` : ""}
         <table class="pv-tl"><tbody>${timelineFor(d, i).map((x) => `<tr class="k-${x.k}"><td class="pv-t">${hhmm(x.start)}${x.end > x.start ? "–" + hhmm(x.end) : ""}</td><td>${x.icon || TL_ICON[x.k] || ""} <b>${esc(x.title)}</b>${x.note ? ` <span class="pv-meta">— ${esc(x.note)}</span>` : ""}</td></tr>`).join("")}</tbody></table>
         <h2>Details & directions</h2>
@@ -7186,7 +7580,8 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
           ${ct.mosques.length ? `<p><b>Mosque:</b> ${ct.mosques.map((m) => esc(m.n)).join("; ")}</p>` : ""}
           <p><b>Cafés:</b> ${(ct.cafes || []).map((x) => esc(x.n)).join("; ")}</p>
           <p><b>Photo spots:</b> ${(ct.insta || []).map((x) => `${esc(x.n)} (${esc(x.when)})`).join("; ")}</p>
-          <p><b>Getting around:</b> ${esc(firstSentence(ct.getAround))}</p></section>`; }).join("")}
+          <p><b>Getting around:</b> ${esc(firstSentence(ct.getAround))}</p>
+          ${(() => { const sg = citySegments(plan).filter((x) => x.cid === id).map(segWeather).filter(Boolean)[0]; return sg ? `<p><b>Weather on your dates:</b> about ${deg(sg.hi)} by day, ${deg(sg.lo)} at night, ${rainWords(sg.rain)}. <b>Pack:</b> ${esc(sg.pack.slice(0, 4).join(", "))}.</p>` : ""; })()}</section>`; }).join("")}
         <section><h2>Visa & entry</h2>
           ${isAU() ? `<p>Australian passport: Schengen visa-free 90 days in any 180 (all Schengen countries combined); fingerprints and photo on first entry (EES). ETIAS not yet required (expected 2027).${c.zones.uk ? " UK: ETA (£20) needed before travel." : ""}${c.zones.tr ? " Türkiye: visa-free since April 2026." : ""}${c.zones.ba ? " Bosnia & Herzegovina: visa-free 90 days." : ""} Passport valid 3+ months after leaving Schengen.</p>`
             : `<p>Check whether your passport needs a Schengen visa (apply to the country with the most nights; €90).${c.zones.uk ? " UK: ETA or visa needed." : ""}${c.zones.tr ? " Türkiye: e-Visa only at evisa.gov.tr if required." : ""}</p>`}</section>
@@ -7346,46 +7741,152 @@ const MAP_GEO = { w: 1000, h: 774, lon0: -25, lat1: 66.8, cos: 0.642788, k: 23.7
     });
   }
   let pdfBusy = false;
-  function downloadPDF() {
-    if (!lastPlan || pdfBusy) return;
-    if (editingDay != null) { const d = editingDay; editingDay = null; refreshDay(d); }
+  // A copy of the on-screen itinerary (all tabs, light theme) laid out off-screen for capture
+  function buildPdfView() {
+    const old = $("#pdfView");
+    if (old) old.parentNode.removeChild(old);
+    const holder = document.createElement("div");
+    holder.id = "pdfView";
+    const ids = state.stops.map((x) => CITIES[x.city].name).filter((v, i, a) => a.indexOf(v) === i);
+    const flags = state.stops.map((x) => flagOf(x.city)).filter((v, i, a) => a.indexOf(v) === i).join(" ");
+    holder.innerHTML = `<header class="mast"><div><h1>Europe Trip Planner <span class="loc">${flags}</span></h1><p>${esc(state.days)}-day trip · ${esc(ids.join(", "))} · ${esc(refreshLine())}</p></div></header>`;
+    const clone = $("#out").cloneNode(true);
+    clone.removeAttribute("id");
+    clone.querySelectorAll(".tabs, .actions, .maplinks, .lmap-wrap, [data-tledit], [data-choosehotel], [data-copycard], .map-legend .btn, .tl-edit, .opts-more summary, script").forEach((n) => n.parentNode.removeChild(n));
+    clone.querySelectorAll("[role=tabpanel][hidden]").forEach((n) => n.removeAttribute("hidden"));
+    clone.querySelectorAll("details").forEach((n) => n.setAttribute("open", ""));
+    holder.appendChild(clone);
+    document.body.appendChild(holder);
+    inlineSvgStyles(holder);
+    // The blocks to place on pages, in reading order; headings stay with what follows
+    const blocks = [holder.querySelector(".mast")];
+    Array.prototype.forEach.call(clone.children, (el) => {
+      if (el.getAttribute("role") === "tabpanel" || el.id === "glanceBox") Array.prototype.forEach.call(el.children, (k) => { if (k.id === "glanceBox") blocks.push(k.firstElementChild); else blocks.push(k); });
+      else blocks.push(el);
+    });
+    return { holder, blocks: blocks.filter((b) => b && b.offsetHeight > 0) };
+  }
+
+  // Find a row near `y` (canvas pixels) that is plain background, so a long card is split between lines of text
+  function quietRow(canvas, y, lookBack) {
+    const ctx = canvas.getContext("2d"), w = canvas.width;
+    for (let r = Math.floor(y); r > y - lookBack && r > 0; r--) {
+      const row = ctx.getImageData(0, r, w, 1).data;
+      let busy = 0;
+      for (let x = 8; x < w - 8; x += 6) {
+        const k = x * 4;
+        if (Math.abs(row[k] - row[32]) + Math.abs(row[k + 1] - row[33]) + Math.abs(row[k + 2] - row[34]) > 24) { if (++busy > 2) break; }
+      }
+      if (busy <= 2) return r;
+    }
+    return Math.floor(y);
+  }
+
+  // PDF laid out like the planner page: every section (tab) and city starts a new page, nothing is cut through a line of text
+  async function downloadPDF() {
+    if (pdfBusy || !lastPlan) return;
     pdfBusy = true;
-    toast("Preparing your PDF… (a few seconds)");
-    const done = () => { pdfBusy = false; const st = $("#pdfStage"); if (st) st.parentNode.removeChild(st); };
-    Promise.all([loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"), loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js")])
-      .then(() => {
-        fitPrintPages();
-        const stage = document.createElement("div");
-        stage.id = "pdfStage";
-        document.body.appendChild(stage);
-        const pages = Array.prototype.slice.call(document.querySelectorAll("#printView .pv-page"));
-        const doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
-        let i = 0;
-        const next = () => {
-          if (i >= pages.length) return Promise.resolve();
-          const pg = pages[i].cloneNode(true);
-          stage.innerHTML = "";
-          stage.appendChild(pg);
-          inlineSvgStyles(stage);
-          return window.html2canvas(pg, { scale: 1.6, backgroundColor: "#ffffff", useCORS: true, logging: false }).then((cv) => {
-            if (i > 0) doc.addPage();
-            const h = Math.min(297, (cv.height / cv.width) * 210);
-            doc.addImage(cv.toDataURL("image/jpeg", 0.8), "JPEG", 0, 0, 210, h, undefined, "FAST");
-            i++;
-            if (i % 4 === 0) toast(`Preparing your PDF… page ${i} of ${pages.length}`);
-            return next();
-          });
+    let view = null;
+    try {
+      toast("Making your PDF… (needs internet the first time)");
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+      if (!window.html2canvas || !window.jspdf) throw new Error("libs");
+      if (editingDay != null) { const d = editingDay; editingDay = null; refreshDay(d); }
+      view = buildPdfView();
+      const SCALE = 1.35, PAPER = [243, 244, 242], Q = 0.78;
+      const pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4", compress: true });
+      const M = 10, PW = 210 - 2 * M, PH = 297 - 2 * M; // printable area in mm
+      const pxToMm = PW / view.holder.querySelector(".mast").offsetWidth;
+      const paint = () => { pdf.setFillColor(PAPER[0], PAPER[1], PAPER[2]); pdf.rect(0, 0, 210, 297, "F"); };
+      paint();
+      let y = M, pages = 1;
+      const newPage = () => { pdf.addPage(); paint(); y = M; pages++; };
+      // 1. Where each section may break: between its parts, never through a line of text
+      const host = view.holder.getBoundingClientRect();
+      const slices = [];
+      view.blocks.forEach((b, bi) => {
+        const leaves = [];
+        const expand = (el) => {
+          if (el.offsetHeight * pxToMm > PH && el.children.length > 1) Array.prototype.forEach.call(el.children, (k) => { if (k.offsetHeight > 0) expand(k); });
+          else leaves.push(el);
         };
-        return next().then(() => {
-          const names = state.stops.map((x) => CITIES[x.city].name.replace(/ \(.*\)/, "")).filter((v, k, a) => a.indexOf(v) === k).slice(0, 4).join(", ");
-          doc.setProperties({ title: `Europe trip · ${state.days} days · ${names}`, creator: "Europe Trip Planner" });
-          const blob = doc.output("blob");
-          window.__lastPdf = blob; // for testing
-          done();
-          offerFile(blob, `Europe trip itinerary (${state.days} days).pdf`, "Your PDF");
+        expand(b);
+        const br = b.getBoundingClientRect();
+        leaves.forEach((el, n) => {
+          const top = n === 0 ? 0 : el.getBoundingClientRect().top - br.top;
+          const next = leaves[n + 1] ? leaves[n + 1].getBoundingClientRect().top - br.top : br.height;
+          if (next - top > 0.5) slices.push({ bi, el, top, bottom: next, last: n === leaves.length - 1 });
         });
-      })
-      .catch(() => { done(); showPrintHelp("nopdf"); });
+      });
+      const cls = (el, c) => el.classList && el.classList.contains(c);
+      const isSection = (el) => el.tagName === "H2" && cls(el, "print-only");
+      const isCity = (el) => cls(el, "city-band");
+      const keepsWithNext = (el) => isSection(el) || isCity(el) || cls(el, "city-stay") || /^H[1-6]$/.test(el.tagName) || cls(el, "day-num") || cls(el, "day-title") || cls(el, "details-h") || cls(el, "wx") || cls(el, "tl-head") || cls(el, "slot-when");
+      // 2. Draw each section once
+      const drawn = [];
+      for (let bi = 0; bi < view.blocks.length; bi++) {
+        toast(`Making your PDF… ${Math.round((bi / view.blocks.length) * 100)}%`);
+        drawn.push(await window.html2canvas(view.blocks[bi], { scale: SCALE, backgroundColor: "rgb(" + PAPER.join(",") + ")", useCORS: true, logging: false, windowWidth: 1300 }));
+      }
+      const hOf = (k) => (slices[k].bottom - slices[k].top) * pxToMm;
+      // 3. Place slices: sections and cities start a new page; headings stay with what follows
+      let atTop = true, prevSection = false;
+      for (let k = 0; k < slices.length; k++) {
+        const sl = slices[k], el = sl.el, block = view.blocks[sl.bi], src = drawn[sl.bi];
+        const br = block.getBoundingClientRect();
+        const xMm = M + (br.left - host.left) * pxToMm, wMm = br.width * pxToMm, hMm = hOf(k);
+        if ((isSection(el) || (isCity(el) && !prevSection)) && !atTop) { newPage(); atTop = true; }
+        else {
+          let need = hMm, j = k + 1;
+          if (slices[k + 1] && slices[k + 1].bi === sl.bi && slices[k + 1].last && hOf(k + 1) < 22) need += hOf(k + 1); // keep a short closing line with its card
+          if (keepsWithNext(el)) {
+            while (j < slices.length && keepsWithNext(slices[j].el) && !isSection(slices[j].el) && !isCity(slices[j].el)) { need += hOf(j); j++; }
+            if (j < slices.length) need += hOf(j) <= PH ? hOf(j) : 50;
+          }
+          if (!atTop && need > M + PH - y) { newPage(); atTop = true; }
+        }
+        const sy = Math.round(sl.top * SCALE), sh = Math.min(src.height - sy, Math.round((sl.bottom - sl.top) * SCALE));
+        if (sh <= 0) continue;
+        const piece = document.createElement("canvas");
+        piece.width = src.width; piece.height = sh;
+        piece.getContext("2d").drawImage(src, 0, sy, src.width, sh, 0, 0, src.width, sh);
+        if (hMm <= PH) {
+          pdf.addImage(piece.toDataURL("image/jpeg", Q), "JPEG", xMm, y, wMm, hMm, undefined, "FAST");
+          y += hMm + (sl.last ? 4 : 0);
+        } else {
+          // a single part taller than a whole page (rare): split it at a blank line
+          let from = 0;
+          while (from < piece.height - 2) {
+            const roomPx = ((M + PH - y) / pxToMm) * SCALE;
+            let cut = from + roomPx >= piece.height ? piece.height : quietRow(piece, from + roomPx, Math.min(260, roomPx * 0.4));
+            if (cut <= from + 20) cut = Math.min(piece.height, from + roomPx);
+            const part = document.createElement("canvas");
+            part.width = piece.width; part.height = cut - from;
+            part.getContext("2d").drawImage(piece, 0, from, piece.width, cut - from, 0, 0, piece.width, cut - from);
+            const partMm = ((cut - from) / SCALE) * pxToMm;
+            pdf.addImage(part.toDataURL("image/jpeg", Q), "JPEG", xMm, y, wMm, partMm, undefined, "FAST");
+            y += partMm; from = cut;
+            if (from < piece.height - 2) newPage();
+          }
+          y += sl.last ? 4 : 0;
+        }
+        atTop = false;
+        prevSection = isSection(el);
+      }
+      const names = state.stops.map((x) => CITIES[x.city].name.replace(/ \(.*\)/, "")).filter((v, k, a) => a.indexOf(v) === k).slice(0, 4).join(", ");
+      pdf.setProperties({ title: `Europe trip · ${state.days} days · ${names}`, creator: "Europe Trip Planner" });
+      const blob = pdf.output("blob");
+      window.__lastPdf = blob; // for testing
+      window.__lastPdfPages = pages;
+      const t = $(".toast"); if (t) t.hidden = true;
+      offerFile(blob, `Europe trip itinerary (${state.days} days).pdf`, `Your PDF (${pages} pages)`);
+    } catch (e) {
+      showPrintHelp("nopdf");
+    } finally {
+      if (view && view.holder.parentNode) view.holder.parentNode.removeChild(view.holder);
+      pdfBusy = false;
+    }
   }
 
   /* Save the current plan as a script-free HTML file: it opens in any iPhone preview
@@ -7434,6 +7935,7 @@ ${pv}
     lastPlan.days.forEach((d, i) => {
       L.push(`DAY ${i + 1}${d.date ? " — " + fmtDate(d.date) : ""} · ${fname(d.cityId)} · ${dayTitle(d)}`);
       timelineFor(d, i).forEach((x) => L.push(`  ${hhmm(x.start)}${x.end > x.start ? "–" + hhmm(x.end) : ""}  ${x.title}${x.note ? " — " + x.note : ""}`));
+      if (d.date) L.push("  Weather — " + wxPlain(d));
       L.push("  Details:");
       d.slots.forEach((s) => {
         const w = SLOT[s.part].label.toUpperCase();
@@ -7493,7 +7995,7 @@ ${pv}
         if (tab.dataset.mapdayOpen != null) lmapDay = tab.dataset.mapdayOpen;
         currentTab = tab.dataset.tab; save("tab", currentTab);
         document.querySelectorAll(".tabs [data-tab]").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === currentTab));
-        ["plan", "map", "stay", "prep", "talk"].forEach((id) => ($("#pane-" + id).hidden = id !== currentTab));
+        ["plan", "map", "wx", "stay", "prep", "talk"].forEach((id) => ($("#pane-" + id).hidden = id !== currentTab));
         if (currentTab === "map") showStreetMap();
         if (!tab.closest(".tabs")) $(".tabs").scrollIntoView({ behavior: "smooth", block: "start" });
         return;

@@ -10,6 +10,7 @@ change, restaurants and hotels open and close. Once a week a scheduled Claude se
   - `data.js` — `DATA_INFO` (refresh date), `FX` (exchange rates), `COUNTRIES`, `REGIONS` (entry rules outside Schengen)
   - `cities-*.js` — each city's places, halal food, mosques, cafés, Instagram spots, dishes, transport tips
   - `hotels.js` — the three hotel picks per city (name, area, coordinates, typical nightly price, note)
+  - `climate.js` — monthly climate averages per city (stable; only fix errors, no weekly check needed)
   - `routes.js` — `ROUTES` (intercity advice; the **first sentence** names the recommended mode and
     "about X h Y" is read as the ride time), `BOATS`, `BEST`, `SYD_FLIGHTS`
   - `app.js` — some facts are written in text (visa notes, Before you go, money tips). Search before editing.
