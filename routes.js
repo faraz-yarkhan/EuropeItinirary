@@ -1,6 +1,13 @@
 /* Intercity routes for the Europe Trip Planner. The first sentence names the recommended way to travel
    (the planner reads it to pick the mode). Times and fares are typical for 2025–26 and change with season
    and how early you book. Pairs not listed here get an estimate from the distance. */
+/* Curated short trips out and back (used by "Change my plan", step 6 and the day trips on each city card).
+   Key "from|to". Without an entry, trips use the intercity estimates. Format (times are typical — check the operator):
+   "xxx|yyy": { train: { from: { n: "Station name", ll: [lat, lng] }, to: { n: "Station name", mins: 10, fare: "€5" },
+                ride: 60, wait: 15, fare: "€20", firstOut: "06:30", lastOut: "21:00", lastBack: "22:30", note: "…" },
+               car: { mins: 90, note: "…" } } */
+const OUTINGS = {};
+
 const ROUTES = {
   "lon|par": "Eurostar train London St Pancras → Paris Gare du Nord, about 2 h 20, from ~£50–60 booked early (up to £200+ last minute). Check in 60–90 min before: UK and French passport checks happen in London.",
   "lon|bru": "Eurostar train London St Pancras → Brussels-Midi, about 2 h, from ~£50 booked early. Check in 60–90 min before.",

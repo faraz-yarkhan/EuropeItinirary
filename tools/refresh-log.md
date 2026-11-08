@@ -1,6 +1,6 @@
 # Data refresh log
 
-Newest first. Each weekly refresh adds an entry (see `tools/REFRESH.md`).
+Newest first. Each daily refresh adds an entry (see `tools/REFRESH.md`).
 
 ## 2026-11-05 — baseline
 - Exchange rates: €1 ≈ A$1.60 (ECB-based 1.606, Wise 1.603, MTFX 1.602 on 4 Nov 2026; was 1.64 from mid-2026).

@@ -1,7 +1,7 @@
-# Weekly data refresh
+# Daily data refresh
 
 The planner's facts go stale: exchange rates move, entry rules change, flights, prices and timetables
-change, restaurants and hotels open and close. Once a week a scheduled Claude session follows this checklist.
+change, restaurants and hotels open and close. Every day a scheduled Claude session follows this checklist.
 
 ## Ground rules
 - Work on branch `claude/gallant-allen-8hqn4y` only (pull it first). Never force-push. Don't open pull requests.
@@ -10,18 +10,21 @@ change, restaurants and hotels open and close. Once a week a scheduled Claude se
   - `data.js` — `DATA_INFO` (refresh date), `FX` (exchange rates), `COUNTRIES`, `REGIONS` (entry rules outside Schengen)
   - `cities-*.js` — each city's places, halal food, mosques, cafés, Instagram spots, dishes, transport tips
   - `hotels.js` — the three hotel picks per city (name, area, coordinates, typical nightly price, note)
-  - `climate.js` — monthly climate averages per city (stable; only fix errors, no weekly check needed)
+  - `climate.js` — monthly climate averages per city (stable; only fix errors, no regular check needed)
   - `routes.js` — `ROUTES` (intercity advice; the **first sentence** names the recommended mode and
-    "about X h Y" is read as the ride time), `BOATS`, `BEST`, `SYD_FLIGHTS`
+    "about X h Y" is read as the ride time), `BOATS`, `BEST`, `SYD_FLIGHTS`, and `OUTINGS` (curated day-trip
+    trains: station, typical times, last train back — only add an entry you've checked on the operator's site)
   - `app.js` — some facts are written in text (visa notes, Before you go, money tips). Search before editing.
 - Every change must be backed by a current source (official sites first, then reputable travel or booking
   sites, then recent reviews). If sources disagree or you can't verify something, leave it and note it in the
   log. **Never invent places, prices, ratings or coordinates.**
 - Keep the JavaScript working on older iPhones: no `??`, `?.`, regex lookbehind `(?<=`, `flatMap`, `.flat(`,
   `replaceAll`, `.at(`.
-- Small, careful changes beat big rewrites. With 56 cities you can't recheck everything every week:
-  do items 1–4 every week, and rotate items 5–9 through the cities (about 8–10 cities a week, continuing
-  from where the last log entry stopped), so every city is reviewed roughly every 6 weeks.
+- Small, careful changes beat big rewrites. With 56 cities you can't recheck everything every day:
+  do items 1–4 every day, and rotate items 5–9 through the cities (about 2 cities a day, continuing
+  from where the last log entry stopped), so every city is reviewed roughly once a month.
+- Most days little changes. If nothing changed, only update `DATA_INFO.refreshed`, add a one-line log entry,
+  rebuild, commit and push.
 
 ## Checklist
 1. **Exchange rates** (ECB euro reference rates, XE, Wise): update `FX.eurAud` (A$ per €1, mid-market) and
@@ -56,7 +59,7 @@ change, restaurants and hotels open and close. Once a week a scheduled Claude se
 3. `node tools/smoke-test.js` — every line must say PASS. Fix anything you broke; if you can't, don't push.
 4. Add an entry at the top of `tools/refresh-log.md`: date, what changed, sources, which cities were reviewed,
    anything unverified, and where the city rotation stopped.
-5. Commit (`Weekly data refresh YYYY-MM-DD`) and push to `claude/gallant-allen-8hqn4y`.
+5. Commit (`Daily data refresh YYYY-MM-DD`) and push to `claude/gallant-allen-8hqn4y`.
    GitHub Pages (if enabled) updates from this branch automatically.
 6. End with a short summary for the owner: what changed this week (especially exchange rates, ETIAS, the UK ETA,
    Türkiye and Russia advice), and anything that needs their attention.

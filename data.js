@@ -11,7 +11,7 @@
    nightsRec — the number of nights we recommend; rail — rail network group (null = no useful railway);
    island — reached only by air or sea. */
 
-/* ---------- DATA REFRESH — updated by the weekly refresh (see tools/REFRESH.md) ---------- */
+/* ---------- DATA REFRESH — updated by the daily refresh (see tools/REFRESH.md) ---------- */
 const DATA_INFO = {
   refreshed: "2026-11-05", // date the data was last checked (YYYY-MM-DD)
   covers: "exchange rates, entry rules for Australians, Sydney flights, prices, opening days, hotels, halal food and transport",
