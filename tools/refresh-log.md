@@ -2,6 +2,33 @@
 
 Newest first. Each daily refresh adds an entry (see `tools/REFRESH.md`).
 
+## 2026-11-09
+- Exchange rates: €1 ≈ A$1.62 (XE 1.6215, Wise 1.621, Bloomberg 1.621 on 9 Nov; was 1.60). Per €1, ECB reference
+  rates of 9 Nov: GBP 0.834, CHF 0.916, CZK 24.37, DKK 7.475, HUF 363.0, PLN 4.38, RON 5.34, NOK 10.53 (was 11.26),
+  ISK 136.8 (was 144), TRY 56.1 (was 53.5). SEK 11.01 (market, 9 Nov), RSD 117.6 (NBS middle rate 9 Nov), MKD 61.5 (XE
+  9 Nov), ALL 90.6 (market 5 Nov; was 98), RUB 91.3 (market 8 Nov; ECB suspended its rouble rate). All mid-2026 values now replaced.
+- Entry rules: ETIAS still has no official start date (Commission dropped the Q4 2026 target; ABTA 13 Oct: "no official
+  launch date") — app wording changed from "now expected in 2027" to "no new start date announced (widely expected in 2027)"
+  in Before you go. UK ETA £20 confirmed by several 2026 sources (GOV.UK page itself not retrieved). Türkiye visa-free for
+  Australians, 90 days in 180, since 17 Apr 2026 — now confirmed on Smartraveller. Russia: Smartraveller page snippet not
+  conclusive; secondary sources still say "Do not travel" — left unchanged.
+- Flights: Qantas Sydney–London nonstop still October 2027 (announced June 2026; sales open Feb 2027). No change.
+- Budapest–Belgrade high-speed line: still no passenger service confirmed (Hungarian side testing) — no change.
+  Venice 2027 access-fee dates (press: 72 days, 26 Mar – 15 Aug 2027) not yet on cda.veneziaunica.it — no change.
+- Edinburgh 5% visitor levy (since 24 Jul 2026, first 5 nights) added to the City fees line in app.js (edinburgh.gov.uk, VisitScotland).
+- Cities reviewed: **London** — bus fare £1.75 → £1.85 from 1 Nov 2026 (london.gov.uk fares paper); Tower of London
+  ~£35 → ~£38 (hrp.org.uk); Westminster Abbey ~£30 → ~£32 (westminster-abbey.org); London Eye "from ~£29 online"
+  (londoneye.com); WB Studio Tour ~£55 → ~£58 (2026 guides citing wbstudiotour.co.uk); Windsor £32 and Tue/Wed closures
+  confirmed; Zones 1–2 cap £8.90 confirmed. Tayyabs, Lahore Kebab House: open (2026 reviews). Hyatt Regency The Churchill
+  operating. **Edinburgh** — Castle ~£21 → ~£23.50 online (Oct 2026, citing edinburghcastle.scot); Holyroodhouse
+  ~£21 → ~£22 online (rct.uk); airport tram £7.90 (fare frozen 2026), city tram £2.40; Elephant House reopened Dec 2025
+  (note updated); Mosque Kitchen and Kebab Mahal open (2026 reviews); Radisson Collection Royal Mile well rated.
+  Route lon|edi: added fastest ~4 h 05 and Lumo from ~£20.
+- Unverified / left as is: Maroush (Edgware Road) — one listing says the original branch closed permanently, others list
+  Maroush Deli/Express on Edgware Road; check next time. Real Mary King's Close price (sources say £21–25). Lothian bus
+  single fare. Hotel prices for London/Edinburgh not re-checked against live rates.
+- Rotation stopped after: lon, edi. Next: par, nce.
+
 ## 2026-11-05 — baseline
 - Exchange rates: €1 ≈ A$1.60 (ECB-based 1.606, Wise 1.603, MTFX 1.602 on 4 Nov 2026; was 1.64 from mid-2026).
   Per €1 from the ECB reference rates of 3–4 Nov 2026: GBP 0.834, CHF 0.919, CZK 24.34, DKK 7.47, HUF 364.4,

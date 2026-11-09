@@ -1313,7 +1313,7 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
   <section class="out" id="out" aria-live="polite"></section>
 </main>
 
-<footer class="refresh" id="refreshFooter">Data last refreshed: 5 Nov 2026 (exchange rates, entry rules for Australians, Sydney flights, prices, opening days, hotels, halal food and transport). Checked daily.</footer>
+<footer class="refresh" id="refreshFooter">Data last refreshed: 9 Nov 2026 (exchange rates, entry rules for Australians, Sydney flights, prices, opening days, hotels, halal food and transport). Checked daily.</footer>
 <script>
   window.onerror = function (msg) {
     var n = document.getElementById("nojs"), e = document.getElementById("jsError");
@@ -1341,16 +1341,18 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
 
 /* ---------- DATA REFRESH — updated by the daily refresh (see tools/REFRESH.md) ---------- */
 const DATA_INFO = {
-  refreshed: "2026-11-05", // date the data was last checked (YYYY-MM-DD)
+  refreshed: "2026-11-09", // date the data was last checked (YYYY-MM-DD)
   covers: "exchange rates, entry rules for Australians, Sydney flights, prices, opening days, hotels, halal food and transport",
 };
 /* Exchange rates: eurAud = A$ per €1 (mid-market); perEur = units of each currency per €1 (ECB reference rates).
-   Everything converts through the euro. Checked 2026-11-05: EUR/AUD ≈ 1.60 (ECB/Wise/MTFX 4 Nov); GBP, CHF, CZK,
-   DKK, HUF, PLN, RON from ECB 3–4 Nov; SEK, NOK, ISK, RSD, MKD, ALL, TRY, RUB not re-verified (mid-2026 values). */
+   Everything converts through the euro. Checked 2026-11-09: EUR/AUD ≈ 1.62 (XE 1.6215, Wise 1.621, Bloomberg 1.621 on 9 Nov);
+   GBP, CHF, CZK, DKK, HUF, PLN, RON, NOK, ISK, TRY from the ECB reference rates of 9 Nov; SEK from market rates 9 Nov;
+   RSD = National Bank of Serbia middle rate 9 Nov; MKD from XE 9 Nov; ALL from market rates 5 Nov; RUB from market rates
+   8 Nov (the ECB no longer publishes a rouble rate). */
 const FX = {
-  eurAud: 1.60,
-  perEur: { EUR: 1, GBP: 0.834, CHF: 0.919, CZK: 24.34, HUF: 364.4, PLN: 4.42, DKK: 7.47, SEK: 11.07, NOK: 11.26, ISK: 144, RON: 5.34,
-    RSD: 117.2, MKD: 61.6, ALL: 98, BAM: 1.95583, TRY: 53.5, RUB: 92 },
+  eurAud: 1.62,
+  perEur: { EUR: 1, GBP: 0.834, CHF: 0.916, CZK: 24.37, HUF: 363.0, PLN: 4.38, DKK: 7.475, SEK: 11.01, NOK: 10.53, ISK: 136.8, RON: 5.34,
+    RSD: 117.6, MKD: 61.5, ALL: 90.6, BAM: 1.95583, TRY: 56.1, RUB: 91.3 },
 };
 const CUR_CODE = { gb: "GBP", ch: "CHF", cz: "CZK", hu: "HUF", pl: "PLN", dk: "DKK", se: "SEK", no: "NOK", is: "ISK", ro: "RON",
   rs: "RSD", mk: "MKD", al: "ALL", ba: "BAM", tr: "TRY", ru: "RUB" };
@@ -1454,7 +1456,7 @@ Object.assign(CITIES, {
       { tier: "mid", n: "Hub by Premier Inn (Westminster, Covent Garden)", area: "Central", note: "Small, smart rooms at fair prices in prime locations." },
       { tier: "budget", n: "Premier Inn London Euston or Travelodge Marylebone", area: "Euston / Marylebone", note: "Reliable UK chains from ~£110." },
     ],
-    getAround: "Tap a contactless card or phone at the Tube/bus gates — daily fares cap automatically (about £8.90 for zones 1–2), so you don't need an Oyster card. Buses are £1.75 with unlimited transfers within an hour. Walk between nearby West End sights; the Tube is hot and crowded at 8–9:30 and 17–18:30.",
+    getAround: "Tap a contactless card or phone at the Tube/bus gates — daily fares cap automatically (about £8.90 for zones 1–2), so you don't need an Oyster card. Buses are £1.85 (since 1 November 2026) with unlimited transfers within an hour. Walk between nearby West End sights; the Tube is hot and crowded at 8–9:30 and 17–18:30.",
     arrive: "Heathrow (LHR): Elizabeth line to Paddington/Bond Street (~35 min, ~£13) or Heathrow Express to Paddington (15 min, from ~£25 booked ahead). Gatwick (LGW): Gatwick Express or Thameslink (~35 min). St Pancras (Eurostar) is on six Tube lines. A black cab from Heathrow is £80–110; Uber ~£55–75.",
     depart: "Leave 3 h before a long-haul flight: allow ~50 min to Heathrow by Elizabeth line from Bond Street. Eurostar: be at St Pancras 60–90 min before departure — French passport control (and EU EES registration) happens in London.",
     dishes: ["Halal fish and chips (most chippies fry in vegetable oil; ask)", "Full English breakfast with halal beef sausages (Edgware Road cafés)", "Afternoon tea — sandwiches are usually chicken, egg, cucumber and salmon; ask about gelatine in desserts", "Sunday roast at a halal steakhouse", "Brick Lane curry and salt-beef bagels (check the beef source)"],
@@ -1488,10 +1490,10 @@ Object.assign(CITIES, {
       { n: "British Museum", t: ["culture", "history", "family"], s: ["m", "e"], h: "3 h", c: "Free (book a free time slot)", m: "Tottenham Court Road · Central/Elizabeth", ll: [51.5194, -0.1270], r: 3,
         d: "Two million years of human history: the Rosetta Stone, the Parthenon sculptures, Egyptian mummies and a fine Islamic world gallery (Room 42–43).",
         tip: "Enter by the Montague Place (north) entrance to skip the queue. The Albukhary Foundation Gallery of the Islamic World is a must." },
-      { n: "Tower of London & Tower Bridge", t: ["history", "sightseeing", "family"], s: ["m"], h: "3 h", c: "~£35 online", m: "Tower Hill · District/Circle", ll: [51.5081, -0.0759], r: 3,
+      { n: "Tower of London & Tower Bridge", t: ["history", "sightseeing", "family"], s: ["m"], h: "3 h", c: "~£38", m: "Tower Hill · District/Circle", ll: [51.5081, -0.0759], r: 3,
         d: "900-year-old fortress with the Crown Jewels, Beefeater tours and the White Tower. Walk across Tower Bridge afterwards.",
         tip: "Go straight to the Crown Jewels at opening (09:00 Tue–Sat) before the queue builds; join a free Yeoman Warder tour after." },
-      { n: "Westminster: Big Ben, Parliament & Westminster Abbey", t: ["history", "sightseeing", "photo"], s: ["m", "e"], h: "2–3 h", c: "Abbey ~£30; outside free", m: "Westminster · Jubilee/District", ll: [51.4995, -0.1270], r: 3, cl: [0],
+      { n: "Westminster: Big Ben, Parliament & Westminster Abbey", t: ["history", "sightseeing", "photo"], s: ["m", "e"], h: "2–3 h", c: "Abbey ~£32; outside free", m: "Westminster · Jubilee/District", ll: [51.4995, -0.1270], r: 3, cl: [0],
         d: "Gothic Houses of Parliament, Elizabeth Tower (Big Ben) and the coronation church of English monarchs.",
         tip: "The Abbey is closed to sightseers on Sundays. Walk on to Buckingham Palace through St James's Park." },
       { n: "Buckingham Palace & St James's Park", t: ["sightseeing", "family", "photo"], s: ["m"], h: "2 h", c: "Free outside (State Rooms open summer only)", m: "Green Park · Victoria/Jubilee/Piccadilly", ll: [51.5014, -0.1419], r: 2,
@@ -1503,7 +1505,7 @@ Object.assign(CITIES, {
       { n: "Sky Garden", t: ["sightseeing", "photo"], s: ["e", "n"], h: "1 h", c: "Free (book ~3 weeks ahead)", m: "Monument · District/Circle", ll: [51.5113, -0.0835], r: 2,
         d: "A glass-domed garden on the 35th floor of the 'Walkie Talkie' with 360° views over the Thames and the Shard.",
         tip: "Free tickets release on Mondays for three weeks ahead and go fast. Sunset slots are the most beautiful." },
-      { n: "Thames River cruise & South Bank", t: ["sightseeing", "relaxing", "family"], s: ["e", "n"], h: "1.5 h", c: "Uber Boat ~£10; London Eye ~£35", m: "Waterloo · Jubilee/Northern", ll: [51.5033, -0.1196], r: 2,
+      { n: "Thames River cruise & South Bank", t: ["sightseeing", "relaxing", "family"], s: ["e", "n"], h: "1.5 h", c: "Uber Boat ~£10; London Eye from ~£29 online", m: "Waterloo · Jubilee/Northern", ll: [51.5033, -0.1196], r: 2,
         d: "Ride the Uber Boat (Thames Clippers) between Westminster and Tower Bridge, or ride the London Eye, then stroll the South Bank.",
         tip: "Tap your contactless card for Uber Boat fares. The Eye is best just before sunset." },
       { n: "Covent Garden & a West End show", t: ["nightlife", "shopping", "family"], s: ["n"], h: "3 h", c: "Shows from ~£30", m: "Leicester Square · Piccadilly/Northern", ll: [51.5117, -0.1240], r: 2,
@@ -1512,7 +1514,7 @@ Object.assign(CITIES, {
       { n: "Hyde Park & Kensington Palace", t: ["nature", "relaxing", "family"], s: ["m", "e"], h: "2 h", c: "Free (palace ~£25)", m: "Marble Arch · Central", ll: [51.5073, -0.1657], r: 2,
         d: "Rent a pedal boat on the Serpentine, see the Diana Memorial Fountain and the palace gardens.",
         tip: "Ten minutes' walk from the recommended hotels." },
-      { n: "Warner Bros. Studio Tour — The Making of Harry Potter", t: ["family", "adventure"], s: ["full"], h: "Full day", c: "~£55 + transport", ll: [51.6905, -0.4180], r: 2,
+      { n: "Warner Bros. Studio Tour — The Making of Harry Potter", t: ["family", "adventure"], s: ["full"], h: "Full day", c: "~£58 + transport", ll: [51.6905, -0.4180], r: 2,
         x: "Train from Euston to Watford Junction (~20 min), then the studio shuttle bus (show your ticket). Allow 4 h inside.",
         d: "The real sets: the Great Hall, Diagon Alley, the Hogwarts Express and the giant Hogwarts model.",
         tip: "Book weeks ahead; tickets are timed. Butterbeer is alcohol-free." },
@@ -1535,8 +1537,8 @@ Object.assign(CITIES, {
       { tier: "mid", n: "Motel One Edinburgh-Princes", area: "Princes Street", note: "Stylish budget-chic with castle views from some rooms." },
       { tier: "budget", n: "Premier Inn Edinburgh City Centre (York Place)", area: "New Town", note: "Good value, 5 min to Princes Street." },
     ],
-    getAround: "Walk — the centre is compact but hilly (bring good shoes). Lothian buses and the tram take contactless (£2 a ride); the tram runs to the airport.",
-    arrive: "Edinburgh Airport: tram to Princes Street (~35 min, ~£7.50) or Airlink 100 bus (~30 min). From London, trains arrive at Waverley in the heart of the city.",
+    getAround: "Walk — the centre is compact but hilly (bring good shoes). Lothian buses and the tram take contactless (a city tram ride is £2.40); the tram runs to the airport, which is a separate fare zone.",
+    arrive: "Edinburgh Airport: tram to Princes Street (~35 min, £7.90) or Airlink 100 bus (~30 min). From London, trains arrive at Waverley in the heart of the city.",
     depart: "Tram or Airlink to the airport (~35 min); trains to London leave from Waverley — be on the platform 15 min early.",
     dishes: ["Halal haggis (several Edinburgh butchers and cafés make it)", "Scotch pies with halal mince", "Shortbread and tablet (fudge-like sweet)", "Cranachan (raspberries, oats, cream — traditionally with whisky, so ask)", "Fish and chips by the sea at Portobello"],
     halal: [
@@ -1547,7 +1549,7 @@ Object.assign(CITIES, {
     halalTip: "Most halal places cluster around Nicolson Street (near the university and Central Mosque) and Leith Walk.",
     mosques: [{ n: "Edinburgh Central Mosque", ll: [55.9455, -3.1880], note: "Main mosque on Potterrow; Jumu'ah draws a large student community." }],
     cafes: [
-      { n: "The Elephant House", ll: [55.9472, -3.1917], note: "Café where J.K. Rowling wrote early Harry Potter — check it has reopened after the 2021 fire." },
+      { n: "The Elephant House", ll: [55.9472, -3.1917], note: "Café where J.K. Rowling wrote early Harry Potter — reopened on George IV Bridge in December 2025 after the 2021 fire." },
       { n: "Mary's Milk Bar, Grassmarket", ll: [55.9475, -3.1960], note: "Handmade gelato and hot chocolate floats under the castle." },
       { n: "Lowdown Coffee, George Street", ll: [55.9530, -3.2000], note: "Minimalist specialty coffee in a New Town basement." },
     ],
@@ -1559,7 +1561,7 @@ Object.assign(CITIES, {
     ],
     night: ["Ghost tour through the Old Town's closes and underground vaults.", "Sunset on Calton Hill, then dinner near Nicolson Square."],
     places: [
-      { n: "Edinburgh Castle", t: ["history", "sightseeing", "family"], s: ["m"], h: "2.5 h", c: "~£21 online", ll: [55.9486, -3.1999], r: 3,
+      { n: "Edinburgh Castle", t: ["history", "sightseeing", "family"], s: ["m"], h: "2.5 h", c: "~£23.50 online", ll: [55.9486, -3.1999], r: 3,
         d: "The fortress on Castle Rock: the Crown Jewels of Scotland (Honours), the Stone of Destiny, St Margaret's Chapel and the One O'Clock Gun.",
         tip: "Book a timed slot online; arrive at opening (09:30)." },
       { n: "Royal Mile & St Giles' Cathedral", t: ["history", "sightseeing", "shopping"], s: ["m", "e"], h: "2 h", c: "Free", ll: [55.9495, -3.1910], r: 3,
@@ -1571,7 +1573,7 @@ Object.assign(CITIES, {
       { n: "National Museum of Scotland", t: ["culture", "family"], s: ["e"], h: "2 h", c: "Free", ll: [55.9469, -3.1893], r: 2,
         d: "Dolly the sheep, Lewis chessmen and a free rooftop terrace with castle views.",
         tip: "Two minutes from the Central Mosque and Mosque Kitchen." },
-      { n: "Palace of Holyroodhouse", t: ["history"], s: ["e"], h: "1.5 h", c: "~£21", ll: [55.9527, -3.1722], r: 1,
+      { n: "Palace of Holyroodhouse", t: ["history"], s: ["e"], h: "1.5 h", c: "~£22 online", ll: [55.9527, -3.1722], r: 1,
         d: "The King's official Scottish residence and the ruined abbey behind it.",
         tip: "Closed when the royal family is in residence (often late June–early July)." },
       { n: "The Real Mary King's Close", t: ["history", "family"], s: ["e", "n"], h: "1 h", c: "~£22", ll: [55.9500, -3.1905], r: 2,
@@ -4693,7 +4695,7 @@ const ROUTES = {
   "lon|par": "Eurostar train London St Pancras → Paris Gare du Nord, about 2 h 20, from ~£50–60 booked early (up to £200+ last minute). Check in 60–90 min before: UK and French passport checks happen in London.",
   "lon|bru": "Eurostar train London St Pancras → Brussels-Midi, about 2 h, from ~£50 booked early. Check in 60–90 min before.",
   "lon|ams": "Eurostar train London St Pancras → Amsterdam Centraal, about 4 h direct, from ~£60 booked early. Flights take 1 h 15 plus airport time.",
-  "lon|edi": "LNER or Lumo train London King's Cross → Edinburgh Waverley, about 4 h 20, from ~£40–60 booked early (book 8–12 weeks ahead). Flights take 1 h 20 plus airport time.",
+  "lon|edi": "LNER or Lumo train London King's Cross → Edinburgh Waverley, about 4 h 20 (fastest LNER trains ~4 h 05), from ~£20 on Lumo or ~£40–60 on LNER booked early (book 8–12 weeks ahead). Flights take 1 h 20 plus airport time.",
   "par|bru": "Eurostar (ex-Thalys) train Paris Gare du Nord → Brussels-Midi, about 1 h 25, from ~€30–35 booked early.",
   "par|ams": "Eurostar train Paris Gare du Nord → Amsterdam Centraal, about 3 h 20, from ~€40 booked early.",
   "par|nce": "TGV INOUI or OUIGO train Paris Gare de Lyon → Nice-Ville, about 5 h 45 – 6 h, from ~€30–60 booked early. Flights take 1 h 25 plus airport time (Orly/CDG → Nice).",
@@ -7802,7 +7804,7 @@ Request: ${txt.trim()}`;
       <ul>
         <li><b>No visa needed for up to 90 days in any 180-day period</b>, for tourism or visiting family. The 90 days are counted across <b>all 29 Schengen countries together</b> (in this planner: ${Object.keys(COUNTRIES).filter((c) => COUNTRIES[c].region === "schengen").map((c) => COUNTRIES[c].name).join(", ")}).</li>
         <li><b>Entry/Exit System (EES):</b> since 10 April 2026 your fingerprints and a photo are recorded the first time you enter, and every entry and exit is logged digitally instead of stamped. Allow extra time at your first border.</li>
-        <li><b>ETIAS</b> (an online travel authorisation, about €20, valid 3 years) is <b>not yet required</b>. The EU dropped its late-2026 target; it's now expected in 2027, with a transition period. Check travel-europe.europa.eu before you fly — and use only that official site.</li>
+        <li><b>ETIAS</b> (an online travel authorisation, about €20, valid 3 years) is <b>not yet required</b>. The EU dropped its late-2026 target and hasn't announced a new start date (widely expected in 2027, with a transition period); it will give several months' notice. Check travel-europe.europa.eu before you fly — and use only that official site.</li>
         <li>Your passport must be valid for 3 months after you leave Schengen and issued within the last 10 years. Border officers may ask for your return ticket, accommodation and funds.</li>
         <li>Australia has older bilateral agreements with some Schengen countries that can allow extra time in that one country; they're complicated — ask that country's embassy before relying on one.</li>
       </ul>` : `<h4>🇪🇺 Schengen Area</h4>
@@ -7881,7 +7883,7 @@ Request: ${txt.trim()}`;
         <li><b>Dress codes:</b> shoulders and knees covered for churches (Vatican, St Mark's, Sagrada Família) and mosques; women need a headscarf in mosques in Istanbul and Sarajevo (usually lent at the door).</li>
         <li><b>Water:</b> tap water is safe throughout this planner's countries — refill bottles at Rome's 'nasoni' fountains. In Istanbul, locals drink bottled.</li>
         <li><b>Toilets</b> in stations often cost €0.50–2; cafés expect you to buy something.</li>
-        <li><b>City fees:</b> tourist taxes are added to hotel bills; Venice charges day-trippers an access fee on peak days (€5–10, overnight guests exempt but must register); Rome's Trevi Fountain basin costs €2.</li>
+        <li><b>City fees:</b> tourist taxes are added to hotel bills; Venice charges day-trippers an access fee on peak days (€5–10, overnight guests exempt but must register); Rome's Trevi Fountain basin costs €2; Edinburgh adds a 5% visitor levy to accommodation bills (first 5 nights, since 24 July 2026).</li>
         <li><b>Halal:</b> Turkish ('helal'), Lebanese, Moroccan, Pakistani and Bosnian restaurants are the most reliable. Watch for pork in unexpected places — lard in pastries (saindoux, strutto, manteca), ham in salads and quiches, gelatine in sweets and yoghurts, and wine in sauces and risottos.</li>
         <li><b>Emergencies:</b> dial <b>112</b> anywhere in the EU, Switzerland, the UK (999 also works) and Türkiye. In Bosnia & Herzegovina: police 122, ambulance 124.</li>
       </ul>

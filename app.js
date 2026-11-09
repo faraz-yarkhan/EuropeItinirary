@@ -2884,7 +2884,7 @@ Request: ${txt.trim()}`;
       <ul>
         <li><b>No visa needed for up to 90 days in any 180-day period</b>, for tourism or visiting family. The 90 days are counted across <b>all 29 Schengen countries together</b> (in this planner: ${Object.keys(COUNTRIES).filter((c) => COUNTRIES[c].region === "schengen").map((c) => COUNTRIES[c].name).join(", ")}).</li>
         <li><b>Entry/Exit System (EES):</b> since 10 April 2026 your fingerprints and a photo are recorded the first time you enter, and every entry and exit is logged digitally instead of stamped. Allow extra time at your first border.</li>
-        <li><b>ETIAS</b> (an online travel authorisation, about €20, valid 3 years) is <b>not yet required</b>. The EU dropped its late-2026 target; it's now expected in 2027, with a transition period. Check travel-europe.europa.eu before you fly — and use only that official site.</li>
+        <li><b>ETIAS</b> (an online travel authorisation, about €20, valid 3 years) is <b>not yet required</b>. The EU dropped its late-2026 target and hasn't announced a new start date (widely expected in 2027, with a transition period); it will give several months' notice. Check travel-europe.europa.eu before you fly — and use only that official site.</li>
         <li>Your passport must be valid for 3 months after you leave Schengen and issued within the last 10 years. Border officers may ask for your return ticket, accommodation and funds.</li>
         <li>Australia has older bilateral agreements with some Schengen countries that can allow extra time in that one country; they're complicated — ask that country's embassy before relying on one.</li>
       </ul>` : `<h4>🇪🇺 Schengen Area</h4>
@@ -2963,7 +2963,7 @@ Request: ${txt.trim()}`;
         <li><b>Dress codes:</b> shoulders and knees covered for churches (Vatican, St Mark's, Sagrada Família) and mosques; women need a headscarf in mosques in Istanbul and Sarajevo (usually lent at the door).</li>
         <li><b>Water:</b> tap water is safe throughout this planner's countries — refill bottles at Rome's 'nasoni' fountains. In Istanbul, locals drink bottled.</li>
         <li><b>Toilets</b> in stations often cost €0.50–2; cafés expect you to buy something.</li>
-        <li><b>City fees:</b> tourist taxes are added to hotel bills; Venice charges day-trippers an access fee on peak days (€5–10, overnight guests exempt but must register); Rome's Trevi Fountain basin costs €2.</li>
+        <li><b>City fees:</b> tourist taxes are added to hotel bills; Venice charges day-trippers an access fee on peak days (€5–10, overnight guests exempt but must register); Rome's Trevi Fountain basin costs €2; Edinburgh adds a 5% visitor levy to accommodation bills (first 5 nights, since 24 July 2026).</li>
         <li><b>Halal:</b> Turkish ('helal'), Lebanese, Moroccan, Pakistani and Bosnian restaurants are the most reliable. Watch for pork in unexpected places — lard in pastries (saindoux, strutto, manteca), ham in salads and quiches, gelatine in sweets and yoghurts, and wine in sauces and risottos.</li>
         <li><b>Emergencies:</b> dial <b>112</b> anywhere in the EU, Switzerland, the UK (999 also works) and Türkiye. In Bosnia & Herzegovina: police 122, ambulance 124.</li>
       </ul>
