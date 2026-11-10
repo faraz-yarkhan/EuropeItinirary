@@ -2,6 +2,29 @@
 
 Newest first. Each daily refresh adds an entry (see `tools/REFRESH.md`).
 
+## 2026-11-10
+- Exchange rates: €1 ≈ A$1.63 (XE 1.6268, Wise 1.627 on 10 Nov; was 1.62). ECB reference rates of 10 Nov: GBP 0.835,
+  CZK 24.34, PLN 4.39, SEK 10.99, NOK 10.62. CHF, HUF, DKK, RON, ISK, TRY kept at the ECB 9 Nov values (10 Nov ECB figures
+  not retrieved; market quotes CHF 0.921, HUF 364.3). RSD, MKD, ALL, RUB unchanged from 9 Nov.
+- Entry rules: ETIAS — still no official start date (EU site: "not in operation"); no change. UK ETA — no news of a change
+  since the £20 fee of 8 Apr 2026; no change. Türkiye — no change. Russia — Smartraveller destinations list shows
+  "Do not travel" (updated 13 Jul 2026) and DFAT's Russia page agrees: confirmed, no change.
+- Flights, Budapest–Belgrade, Venice: not re-checked today (checked 9 Nov).
+- Cities reviewed: **Paris** — CDG/Orly airport ticket €13 → €14 (from 1 Jan 2026, bonjour-ratp.fr / IDF Mobilités);
+  taxi fixed fares €56/€65 CDG and €45/€36 Orly, Right/Left Bank (service-public.gouv.fr; Orly upper figure was €44);
+  Eiffel Tower €14.80–36.70 (toureiffel.paris); Versailles Passport €25 low / €35 high season for non-EEA visitors
+  (en.chateauversailles.fr/2026-ticketing; was "~€21–32"); Louvre €32 and Tuesday closure unchanged. Hôtel Jeanne d'Arc
+  Le Marais still well rated (~8.4). Liza still listed at 14 rue de la Banque.
+  **Nice** — Musée Matisse ~€15 → ~€10–12 (€10 standard, €12 during the Alex Katz show to 18 Jan 2027), closed Tuesdays
+  confirmed; airport taxi €32 fixed fare and €10 airport tram return confirmed; Hôtel Le Grimaldi open all year (4★, 15 rue
+  Grimaldi). Route par|nce: fastest ~5 h 42; fares now "from ~€19 on OUIGO or ~€40–60 on TGV INOUI" (was ~€30–60).
+- Unverified / left as is: Musée d'Orsay price (sources say €16–18 for non-EU visitors); Sainte-Chapelle (non-EEA rates rose
+  12 Jan 2026, exact figure not found; app says ~€20) and Arc de Triomphe rooftop (CMN table €17 vs guides €16/€22, one
+  source says the lift is out of service) — check next time. Noura, Avenue Marceau: one listing shows no open days — check
+  whether it has closed. Nice mosque (En-Nour) still has no verified street address (it is in the Nice La Plaine area, west
+  of the airport). Nice city tram fare (€1.70 per guides; app says ~€2).
+- Rotation stopped after: par, nce. Next: ams, bru.
+
 ## 2026-11-09
 - Exchange rates: €1 ≈ A$1.62 (XE 1.6215, Wise 1.621, Bloomberg 1.621 on 9 Nov; was 1.60). Per €1, ECB reference
   rates of 9 Nov: GBP 0.834, CHF 0.916, CZK 24.37, DKK 7.475, HUF 363.0, PLN 4.38, RON 5.34, NOK 10.53 (was 11.26),

@@ -13,17 +13,17 @@
 
 /* ---------- DATA REFRESH — updated by the daily refresh (see tools/REFRESH.md) ---------- */
 const DATA_INFO = {
-  refreshed: "2026-11-09", // date the data was last checked (YYYY-MM-DD)
+  refreshed: "2026-11-10", // date the data was last checked (YYYY-MM-DD)
   covers: "exchange rates, entry rules for Australians, Sydney flights, prices, opening days, hotels, halal food and transport",
 };
 /* Exchange rates: eurAud = A$ per €1 (mid-market); perEur = units of each currency per €1 (ECB reference rates).
-   Everything converts through the euro. Checked 2026-11-09: EUR/AUD ≈ 1.62 (XE 1.6215, Wise 1.621, Bloomberg 1.621 on 9 Nov);
-   GBP, CHF, CZK, DKK, HUF, PLN, RON, NOK, ISK, TRY from the ECB reference rates of 9 Nov; SEK from market rates 9 Nov;
+   Everything converts through the euro. Checked 2026-11-10: EUR/AUD ≈ 1.63 (XE 1.6268, Wise 1.627 on 10 Nov);
+   GBP, CZK, PLN, SEK, NOK from the ECB reference rates of 10 Nov; CHF, DKK, HUF, RON, ISK, TRY from the ECB rates of 9 Nov;
    RSD = National Bank of Serbia middle rate 9 Nov; MKD from XE 9 Nov; ALL from market rates 5 Nov; RUB from market rates
    8 Nov (the ECB no longer publishes a rouble rate). */
 const FX = {
-  eurAud: 1.62,
-  perEur: { EUR: 1, GBP: 0.834, CHF: 0.916, CZK: 24.37, HUF: 363.0, PLN: 4.38, DKK: 7.475, SEK: 11.01, NOK: 10.53, ISK: 136.8, RON: 5.34,
+  eurAud: 1.63,
+  perEur: { EUR: 1, GBP: 0.835, CHF: 0.916, CZK: 24.34, HUF: 363.0, PLN: 4.39, DKK: 7.475, SEK: 10.99, NOK: 10.62, ISK: 136.8, RON: 5.34,
     RSD: 117.6, MKD: 61.5, ALL: 90.6, BAM: 1.95583, TRY: 56.1, RUB: 91.3 },
 };
 const CUR_CODE = { gb: "GBP", ch: "CHF", cz: "CZK", hu: "HUF", pl: "PLN", dk: "DKK", se: "SEK", no: "NOK", is: "ISK", ro: "RON",

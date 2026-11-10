@@ -15,7 +15,7 @@ const ROUTES = {
   "lon|edi": "LNER or Lumo train London King's Cross → Edinburgh Waverley, about 4 h 20 (fastest LNER trains ~4 h 05), from ~£20 on Lumo or ~£40–60 on LNER booked early (book 8–12 weeks ahead). Flights take 1 h 20 plus airport time.",
   "par|bru": "Eurostar (ex-Thalys) train Paris Gare du Nord → Brussels-Midi, about 1 h 25, from ~€30–35 booked early.",
   "par|ams": "Eurostar train Paris Gare du Nord → Amsterdam Centraal, about 3 h 20, from ~€40 booked early.",
-  "par|nce": "TGV INOUI or OUIGO train Paris Gare de Lyon → Nice-Ville, about 5 h 45 – 6 h, from ~€30–60 booked early. Flights take 1 h 25 plus airport time (Orly/CDG → Nice).",
+  "par|nce": "TGV INOUI or OUIGO train Paris Gare de Lyon → Nice-Ville, about 5 h 45 – 6 h, from ~€19 on OUIGO or ~€40–60 on TGV INOUI booked early. Flights take 1 h 25 plus airport time (Orly/CDG → Nice).",
   "par|bcn": "TGV / AVE train Paris Gare de Lyon → Barcelona Sants, about 6 h 30 direct, from ~€40–80 booked early. Flights take 1 h 45 plus airport time.",
   "par|zrh": "TGV Lyria train Paris Gare de Lyon → Zurich HB, about 4 h, from ~€40–60 booked early.",
   "par|lzn": "TGV Lyria train Paris → Basel (~3 h), then train to Lucerne (~1 h), about 4 h 15 total.",

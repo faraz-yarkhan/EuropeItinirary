@@ -1313,7 +1313,7 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
   <section class="out" id="out" aria-live="polite"></section>
 </main>
 
-<footer class="refresh" id="refreshFooter">Data last refreshed: 9 Nov 2026 (exchange rates, entry rules for Australians, Sydney flights, prices, opening days, hotels, halal food and transport). Checked daily.</footer>
+<footer class="refresh" id="refreshFooter">Data last refreshed: 10 Nov 2026 (exchange rates, entry rules for Australians, Sydney flights, prices, opening days, hotels, halal food and transport). Checked daily.</footer>
 <script>
   window.onerror = function (msg) {
     var n = document.getElementById("nojs"), e = document.getElementById("jsError");
@@ -1341,17 +1341,17 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
 
 /* ---------- DATA REFRESH — updated by the daily refresh (see tools/REFRESH.md) ---------- */
 const DATA_INFO = {
-  refreshed: "2026-11-09", // date the data was last checked (YYYY-MM-DD)
+  refreshed: "2026-11-10", // date the data was last checked (YYYY-MM-DD)
   covers: "exchange rates, entry rules for Australians, Sydney flights, prices, opening days, hotels, halal food and transport",
 };
 /* Exchange rates: eurAud = A$ per €1 (mid-market); perEur = units of each currency per €1 (ECB reference rates).
-   Everything converts through the euro. Checked 2026-11-09: EUR/AUD ≈ 1.62 (XE 1.6215, Wise 1.621, Bloomberg 1.621 on 9 Nov);
-   GBP, CHF, CZK, DKK, HUF, PLN, RON, NOK, ISK, TRY from the ECB reference rates of 9 Nov; SEK from market rates 9 Nov;
+   Everything converts through the euro. Checked 2026-11-10: EUR/AUD ≈ 1.63 (XE 1.6268, Wise 1.627 on 10 Nov);
+   GBP, CZK, PLN, SEK, NOK from the ECB reference rates of 10 Nov; CHF, DKK, HUF, RON, ISK, TRY from the ECB rates of 9 Nov;
    RSD = National Bank of Serbia middle rate 9 Nov; MKD from XE 9 Nov; ALL from market rates 5 Nov; RUB from market rates
    8 Nov (the ECB no longer publishes a rouble rate). */
 const FX = {
-  eurAud: 1.62,
-  perEur: { EUR: 1, GBP: 0.834, CHF: 0.916, CZK: 24.37, HUF: 363.0, PLN: 4.38, DKK: 7.475, SEK: 11.01, NOK: 10.53, ISK: 136.8, RON: 5.34,
+  eurAud: 1.63,
+  perEur: { EUR: 1, GBP: 0.835, CHF: 0.916, CZK: 24.34, HUF: 363.0, PLN: 4.39, DKK: 7.475, SEK: 10.99, NOK: 10.62, ISK: 136.8, RON: 5.34,
     RSD: 117.6, MKD: 61.5, ALL: 90.6, BAM: 1.95583, TRY: 56.1, RUB: 91.3 },
 };
 const CUR_CODE = { gb: "GBP", ch: "CHF", cz: "CZK", hu: "HUF", pl: "PLN", dk: "DKK", se: "SEK", no: "NOK", is: "ISK", ro: "RON",
@@ -1600,7 +1600,7 @@ Object.assign(CITIES, {
       { tier: "budget", n: "Generator Paris or ibis Styles (various)", area: "10th / Latin Quarter", note: "Clean, central and ~€110–150." },
     ],
     getAround: "The Métro is fast; buy tickets in the Bonjour RATP or IDF Mobilités app or tap a contactless card where accepted, or get a Navigo Easy card. Paris is very walkable along the Seine. Watch for pickpockets on Line 1, at Châtelet and around the Eiffel Tower.",
-    arrive: "CDG: RER B to Saint-Michel/Châtelet (~35–45 min, €13). Orly: Orlyval + RER B or the Line 14 metro (~30 min). Taxis have fixed fares to central Paris (~€56–65 from CDG, ~€36–44 from Orly). Eurostar arrives at Gare du Nord on RER B.",
+    arrive: "CDG: RER B to Saint-Michel/Châtelet (~35–45 min, €14 airport ticket). Orly: Orlyval + RER B or the Line 14 metro (~30 min). Taxis have fixed fares to central Paris (€56–65 from CDG, €36–45 from Orly; Right Bank / Left Bank). Eurostar arrives at Gare du Nord on RER B.",
     depart: "Leave 3 h before an international flight: RER B to CDG from Saint-Michel ~40 min, or a fixed-fare taxi. TGV stations: Gare de Lyon (south: Nice, Italy, Switzerland), Gare de l'Est (Germany), Gare du Nord (London, Brussels, Amsterdam), Montparnasse (south-west).",
     dishes: ["Croissants and pain au chocolat (check for butter only — no lard in French pastry)", "Halal steak-frites and burgers (many halal bistros in the 11th and 18th)", "Moroccan couscous and tagine (the city's comfort food)", "Macarons — some colours use gelatine-free recipes; Ladurée's are generally gelatine-free but ask", "Crêpes (sweet ones are safe; avoid ham 'complète' galettes)", "Avoid: jambon, lardons, saucisson, boeuf bourguignon (wine)"],
     halal: [
@@ -1635,7 +1635,7 @@ Object.assign(CITIES, {
       { n: "Louvre Museum", loc: "Musée du Louvre", t: ["culture", "history", "family"], s: ["m"], h: "3–4 h", c: "€32 for non-EEA visitors (from Jan 2026)", m: "Palais Royal–Musée du Louvre · Lines 1/7", ll: [48.8606, 2.3376], r: 3, cl: [2],
         d: "The world's most-visited museum: the Mona Lisa, Venus de Milo, Winged Victory and a superb Department of Islamic Arts under its golden 'flying carpet' roof.",
         tip: "Closed Tuesdays. A timed ticket booked on the official site is essential. Enter via the Carrousel du Louvre or Porte des Lions to skip the pyramid queue." },
-      { n: "Eiffel Tower", loc: "Tour Eiffel", t: ["sightseeing", "photo", "family"], s: ["m", "e", "n"], h: "2–3 h", c: "€14–36 by level, stairs or lift", m: "Bir-Hakeim · Line 6", ll: [48.8584, 2.2945], r: 3,
+      { n: "Eiffel Tower", loc: "Tour Eiffel", t: ["sightseeing", "photo", "family"], s: ["m", "e", "n"], h: "2–3 h", c: "€14.80–36.70 by level, stairs or lift", m: "Bir-Hakeim · Line 6", ll: [48.8584, 2.2945], r: 3,
         d: "Ride to the summit for views across Paris, or climb the stairs to level 2. It sparkles for five minutes every hour after dark.",
         tip: "Tickets release 60 days ahead on the official site and sell out; evening slots give day and night views." },
       { n: "Notre-Dame & Île de la Cité", t: ["history", "culture", "sightseeing"], s: ["m", "e"], h: "2 h", c: "Free (Sainte-Chapelle ~€20)", m: "Cité · Line 4", ll: [48.8530, 2.3499], r: 3,
@@ -1650,7 +1650,7 @@ Object.assign(CITIES, {
       { n: "Champs-Élysées & Arc de Triomphe", t: ["sightseeing", "shopping"], s: ["e", "n"], h: "2 h", c: "Arc rooftop ~€16", m: "Charles de Gaulle–Étoile · Lines 1/2/6", ll: [48.8738, 2.2950], r: 2,
         d: "Stroll the avenue, then climb 284 steps to the Arc's roof for the view down 12 radiating avenues.",
         tip: "Use the underpass — never cross the roundabout on foot." },
-      { n: "Palace of Versailles", loc: "Château de Versailles", t: ["history", "culture", "photo"], s: ["full"], h: "Full day", c: "~€21–32 (Passport ticket)", ll: [48.8049, 2.1204], r: 3, cl: [1],
+      { n: "Palace of Versailles", loc: "Château de Versailles", t: ["history", "culture", "photo"], s: ["full"], h: "Full day", c: "Passport ticket €25 low season / €35 high season (non-EEA visitors)", ll: [48.8049, 2.1204], r: 3, cl: [1],
         x: "RER C to Versailles Château–Rive Gauche (~45 min), then a 10 min walk.",
         d: "The Hall of Mirrors, the King's apartments, the vast gardens and Marie-Antoinette's estate.",
         tip: "Closed Mondays. Book a timed Passport ticket; the musical fountain shows run on spring–summer weekends. Bring lunch — on-site cafés aren't halal." },
@@ -1720,7 +1720,7 @@ Object.assign(CITIES, {
         x: "Bus 82 or 602 from Nice (~30 min).",
         d: "A medieval eagle's-nest village 400 m above the sea with a cactus garden at the top.",
         tip: "Fit for walkers: hike down the Nietzsche Path to the coast (~1 h)." },
-      { n: "Matisse Museum & Cimiez", t: ["culture"], s: ["e"], h: "1.5 h", c: "~€15", ll: [43.7195, 7.2760], r: 1, cl: [2],
+      { n: "Matisse Museum & Cimiez", t: ["culture"], s: ["e"], h: "1.5 h", c: "~€10–12", ll: [43.7195, 7.2760], r: 1, cl: [2],
         d: "Matisse's works in a red Genoese villa among Roman ruins and olive groves.",
         tip: "Closed Tuesdays." },
       { n: "Cannes & the Croisette", t: ["sightseeing", "shopping"], s: ["full"], h: "Full day", c: "Free", ll: [43.5510, 7.0174], r: 1,
@@ -4698,7 +4698,7 @@ const ROUTES = {
   "lon|edi": "LNER or Lumo train London King's Cross → Edinburgh Waverley, about 4 h 20 (fastest LNER trains ~4 h 05), from ~£20 on Lumo or ~£40–60 on LNER booked early (book 8–12 weeks ahead). Flights take 1 h 20 plus airport time.",
   "par|bru": "Eurostar (ex-Thalys) train Paris Gare du Nord → Brussels-Midi, about 1 h 25, from ~€30–35 booked early.",
   "par|ams": "Eurostar train Paris Gare du Nord → Amsterdam Centraal, about 3 h 20, from ~€40 booked early.",
-  "par|nce": "TGV INOUI or OUIGO train Paris Gare de Lyon → Nice-Ville, about 5 h 45 – 6 h, from ~€30–60 booked early. Flights take 1 h 25 plus airport time (Orly/CDG → Nice).",
+  "par|nce": "TGV INOUI or OUIGO train Paris Gare de Lyon → Nice-Ville, about 5 h 45 – 6 h, from ~€19 on OUIGO or ~€40–60 on TGV INOUI booked early. Flights take 1 h 25 plus airport time (Orly/CDG → Nice).",
   "par|bcn": "TGV / AVE train Paris Gare de Lyon → Barcelona Sants, about 6 h 30 direct, from ~€40–80 booked early. Flights take 1 h 45 plus airport time.",
   "par|zrh": "TGV Lyria train Paris Gare de Lyon → Zurich HB, about 4 h, from ~€40–60 booked early.",
   "par|lzn": "TGV Lyria train Paris → Basel (~3 h), then train to Lucerne (~1 h), about 4 h 15 total.",
