@@ -2,6 +2,24 @@
 
 Newest first. Each daily refresh adds an entry (see `tools/REFRESH.md`).
 
+## 2026-11-11
+- Exchange rates: €1 ≈ A$1.63 (Wise 1.628 on 11 Nov) — unchanged. ECB 10 Nov rates (Bank of Lithuania republication):
+  CHF 0.916 → 0.920, ISK 136.8 → 137.2, DKK 7.475 unchanged. Others unchanged (11 Nov ECB figures not yet retrieved).
+- Entry rules: ETIAS — no start date announced (latest reporting: Commission will name a date "several months" ahead);
+  no change. UK ETA — £20, no change. Türkiye — visa-free, no change (Smartraveller level "Exercise a high degree of
+  caution", 2 Oct 2026). Russia — "Do not travel" (13 Jul 2026), no change. Serbia "normal safety precautions" (29 Jul),
+  Bosnia & Herzegovina "high degree of caution" (31 Jul) — from the Smartraveller Europe list.
+- Cities reviewed: **Amsterdam** — Van Gogh Museum ~€22 → ~€25–27 (2026 guides; official page not retrieved);
+  Anne Frank House ~€16 → ~€16.50 (several 2026 guides, sold only on annefrank.org); Rijksmuseum ~€25 and Schiphol train
+  ~€6 (€6.20) confirmed; Max Brown Canal District still listed by Sircle Collection.
+  **Brussels** — Magritte Museum closed Mondays confirmed; Brussels Airport rail supplement is €6.90 (brusselsairport.be),
+  total fare to Central left at ~€11 (base fare not confirmed). Route ams|bru: added "from ~€25 booked early" (Eurostar
+  from £25 / €25–29; ~1 h 52–1 h 57).
+- Unverified / left as is: Atomium price (blogs €17–18 vs a €32.20 figure on atomium.be — check); Hotel Le Dixseptième
+  status not found; A'DAM Lookout price; the Great Mosque of Brussels minaret is being partly dismantled for stability
+  repairs (Brussels Times, date unclear) — mosque note unchanged; Amsterdam/Brussels halal places not re-checked today.
+- Rotation stopped after: ams, bru. Next: ber, muc.
+
 ## 2026-11-10
 - Exchange rates: €1 ≈ A$1.63 (XE 1.6268, Wise 1.627 on 10 Nov; was 1.62). ECB reference rates of 10 Nov: GBP 0.835,
   CZK 24.34, PLN 4.39, SEK 10.99, NOK 10.62. CHF, HUF, DKK, RON, ISK, TRY kept at the ECB 9 Nov values (10 Nov ECB figures

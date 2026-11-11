@@ -1313,7 +1313,7 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
   <section class="out" id="out" aria-live="polite"></section>
 </main>
 
-<footer class="refresh" id="refreshFooter">Data last refreshed: 10 Nov 2026 (exchange rates, entry rules for Australians, Sydney flights, prices, opening days, hotels, halal food and transport). Checked daily.</footer>
+<footer class="refresh" id="refreshFooter">Data last refreshed: 11 Nov 2026 (exchange rates, entry rules for Australians, Sydney flights, prices, opening days, hotels, halal food and transport). Checked daily.</footer>
 <script>
   window.onerror = function (msg) {
     var n = document.getElementById("nojs"), e = document.getElementById("jsError");
@@ -1341,17 +1341,17 @@ body.pv-screen .pv-page { margin: 12px auto; padding: 10mm; box-shadow: 0 2px 12
 
 /* ---------- DATA REFRESH — updated by the daily refresh (see tools/REFRESH.md) ---------- */
 const DATA_INFO = {
-  refreshed: "2026-11-10", // date the data was last checked (YYYY-MM-DD)
+  refreshed: "2026-11-11", // date the data was last checked (YYYY-MM-DD)
   covers: "exchange rates, entry rules for Australians, Sydney flights, prices, opening days, hotels, halal food and transport",
 };
 /* Exchange rates: eurAud = A$ per €1 (mid-market); perEur = units of each currency per €1 (ECB reference rates).
-   Everything converts through the euro. Checked 2026-11-10: EUR/AUD ≈ 1.63 (XE 1.6268, Wise 1.627 on 10 Nov);
-   GBP, CZK, PLN, SEK, NOK from the ECB reference rates of 10 Nov; CHF, DKK, HUF, RON, ISK, TRY from the ECB rates of 9 Nov;
+   Everything converts through the euro. Checked 2026-11-11: EUR/AUD ≈ 1.63 (Wise 1.628 on 11 Nov);
+   GBP, CHF, CZK, DKK, ISK, PLN, SEK, NOK from the ECB reference rates of 10 Nov; HUF, RON, TRY from the ECB rates of 9 Nov;
    RSD = National Bank of Serbia middle rate 9 Nov; MKD from XE 9 Nov; ALL from market rates 5 Nov; RUB from market rates
    8 Nov (the ECB no longer publishes a rouble rate). */
 const FX = {
   eurAud: 1.63,
-  perEur: { EUR: 1, GBP: 0.835, CHF: 0.916, CZK: 24.34, HUF: 363.0, PLN: 4.39, DKK: 7.475, SEK: 10.99, NOK: 10.62, ISK: 136.8, RON: 5.34,
+  perEur: { EUR: 1, GBP: 0.835, CHF: 0.920, CZK: 24.34, HUF: 363.0, PLN: 4.39, DKK: 7.475, SEK: 10.99, NOK: 10.62, ISK: 137.2, RON: 5.34,
     RSD: 117.6, MKD: 61.5, ALL: 90.6, BAM: 1.95583, TRY: 56.1, RUB: 91.3 },
 };
 const CUR_CODE = { gb: "GBP", ch: "CHF", cz: "CZK", hu: "HUF", pl: "PLN", dk: "DKK", se: "SEK", no: "NOK", is: "ISK", ro: "RON",
@@ -1773,10 +1773,10 @@ Object.assign(CITIES, {
       { n: "Rijksmuseum", t: ["culture", "history"], s: ["m", "e"], h: "3 h", c: "~€25", m: "Rijksmuseum · Trams 2/12", ll: [52.3600, 4.8852], r: 3,
         d: "Rembrandt's Night Watch, Vermeer's Milkmaid and the Dutch Golden Age.",
         tip: "Book a timed ticket; go straight to the Gallery of Honour first." },
-      { n: "Van Gogh Museum", t: ["culture"], s: ["m", "e"], h: "2 h", c: "~€22", m: "Van Baerlestraat · Trams 2/12", ll: [52.3584, 4.8811], r: 3,
+      { n: "Van Gogh Museum", t: ["culture"], s: ["m", "e"], h: "2 h", c: "~€25–27", m: "Van Baerlestraat · Trams 2/12", ll: [52.3584, 4.8811], r: 3,
         d: "The world's largest Van Gogh collection: Sunflowers, The Bedroom, self-portraits.",
         tip: "Tickets are timed and sell out — book days ahead." },
-      { n: "Anne Frank House", t: ["history"], s: ["m", "e"], h: "1.5 h", c: "~€16", m: "Westermarkt · Trams 13/17", ll: [52.3752, 4.8840], r: 3,
+      { n: "Anne Frank House", t: ["history"], s: ["m", "e"], h: "1.5 h", c: "~€16.50", m: "Westermarkt · Trams 13/17", ll: [52.3752, 4.8840], r: 3,
         d: "The secret annex where Anne Frank hid and wrote her diary.",
         tip: "Tickets only online, released six weeks ahead every Tuesday — they go in minutes." },
       { n: "Canal cruise", t: ["sightseeing", "relaxing", "family"], s: ["e", "n"], h: "1.5 h", c: "~€20", ll: [52.3680, 4.8850], r: 2,
@@ -4712,7 +4712,7 @@ const ROUTES = {
   "par|vie": "Fly Paris → Vienna, about 2 h. A Nightjet sleeper train also runs (~14 h).",
   "par|prg": "Fly Paris → Prague, about 1 h 45 plus airport time.",
   "par|mad": "Fly Paris → Madrid, about 2 h plus airport time.",
-  "ams|bru": "Eurostar train Amsterdam → Brussels-Midi, about 1 h 50 (or the cheaper Intercity, ~2 h 50).",
+  "ams|bru": "Eurostar train Amsterdam → Brussels-Midi, about 1 h 50, from ~€25 booked early (or the cheaper Intercity, ~2 h 50).",
   "ams|ber": "Intercity train Amsterdam → Berlin, about 6 h 15 direct, from ~€40 booked early. Flights take 1 h 20 plus airport time.",
   "ams|muc": "Fly Amsterdam → Munich, about 1 h 20 plus airport time (ICE train ~7 h with a change).",
   "bru|ber": "Fly Brussels → Berlin, about 1 h 25; the train takes ~6.5–7 h via Cologne.",

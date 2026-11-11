@@ -29,7 +29,7 @@ const ROUTES = {
   "par|vie": "Fly Paris → Vienna, about 2 h. A Nightjet sleeper train also runs (~14 h).",
   "par|prg": "Fly Paris → Prague, about 1 h 45 plus airport time.",
   "par|mad": "Fly Paris → Madrid, about 2 h plus airport time.",
-  "ams|bru": "Eurostar train Amsterdam → Brussels-Midi, about 1 h 50 (or the cheaper Intercity, ~2 h 50).",
+  "ams|bru": "Eurostar train Amsterdam → Brussels-Midi, about 1 h 50, from ~€25 booked early (or the cheaper Intercity, ~2 h 50).",
   "ams|ber": "Intercity train Amsterdam → Berlin, about 6 h 15 direct, from ~€40 booked early. Flights take 1 h 20 plus airport time.",
   "ams|muc": "Fly Amsterdam → Munich, about 1 h 20 plus airport time (ICE train ~7 h with a change).",
   "bru|ber": "Fly Brussels → Berlin, about 1 h 25; the train takes ~6.5–7 h via Cologne.",
