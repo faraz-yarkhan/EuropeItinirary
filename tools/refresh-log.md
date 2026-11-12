@@ -2,6 +2,22 @@
 
 Newest first. Each daily refresh adds an entry (see `tools/REFRESH.md`).
 
+## 2026-11-12
+- Exchange rates: €1 ≈ A$1.62 (XE 1.624, Telexoo 1.624 on 12 Nov; was 1.63). ECB 12 Nov (Central Bank of Malta
+  mirror): GBP 0.835 → 0.836, CHF 0.920 → 0.923. Others unchanged.
+- Entry rules: ETIAS — still no start date; UK ETA £20 (mandatory since 25 Feb 2026); Türkiye visa-free; Russia
+  "Do not travel". No news this week; no changes.
+- Cities reviewed: **Berlin** — Deutschlandticket €58 → €63 (since 1 Jan 2026; €66.80 from 1 Jan 2027 — int.bahn.de,
+  navit.com); BVG AB single ~€3.80 → €4.00, 24-hour AB ~€10.60 → €11.20 (sbahn.berlin, The Berliner); BER airport
+  ABC ticket ~€4.70 → €5.00; Museum Island ~€12 → ~€14 per museum, day pass €24 (2026 guides). Sanssouci €19 (guide).
+  **Munich** — MVV zone M single-day ticket ~€9.70 → €10.10 (mvv-muenchen.de, muenchen.de; €10.80 from 2027);
+  Neuschwanstein €21 + €2.50 online booking fee (neuschwanstein.de); Nymphenburg ~€15 → €10 palace, combined ticket
+  €16–20 by season (schloss.bayern.de 2026 price list, schloss-nymphenburg.de); Residenz €10 confirmed.
+- Unverified / left as is: Munich airport S-Bahn fare (guide says ~€13 single, app says ~€14 — official MVV price not
+  found); Pergamon Museum status (sources disagree whether 4 or 5 Museum Island museums are open; reopening of part on
+  4 Jun 2027 unchanged); Berlin/Munich hotels and halal places not re-checked today.
+- Rotation stopped after: ber, muc. Next: zrh and the next file (cities-central.js order).
+
 ## 2026-11-11
 - Exchange rates: €1 ≈ A$1.63 (Wise 1.628 on 11 Nov) — unchanged. ECB 10 Nov rates (Bank of Lithuania republication):
   CHF 0.916 → 0.920, ISK 136.8 → 137.2, DKK 7.475 unchanged. Others unchanged (11 Nov ECB figures not yet retrieved).
