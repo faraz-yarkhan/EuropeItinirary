@@ -2,6 +2,21 @@
 
 Newest first. Each daily refresh adds an entry (see `tools/REFRESH.md`).
 
+## 2026-11-13
+- Exchange rates: €1 ≈ A$1.62 (XE/Wise/TradingView ~1.624) and EUR/GBP 0.836 (Trading Economics 13 Nov) — unchanged.
+- Entry rules: ETIAS still no date ("not in operation"); UK ETA £20; Türkiye visa-free (Smartraveller "high degree of
+  caution", 2 Oct 2026); Russia "Do not travel" (13 Jul 2026). No changes.
+- Cities reviewed: **Zurich** — Uetliberg ~CHF 9 → ~CHF 19 return (myswitzerland.com offer from CHF 18.80; 2024 fare
+  CHF 18.40); Lindt Home of Chocolate CHF 17 confirmed (2026 guide); airport train ~CHF 7 and Zurich–Lucerne CHF 27
+  confirmed. **Lucerne** — Pilatus Golden Round Trip ~CHF 120 → ~CHF 119, about CHF 42 with the Swiss Travel Pass
+  (luzern.com package, 2026 guide); 2026 season 11 May – 18 Oct (luzern.com) replaces "May–Nov". Titlis ~CHF 100 →
+  ~CHF 102 return from Engelberg (engelberg.ch, myswitzerland.com); Rotair closed 10 Aug – 11 Dec 2026 (one source names
+  the new "Titlis Connect" cable car) — added a pointer to titlis.ch.
+- Unverified / left as is: Swiss Museum of Transport (resellers CHF 35 entry vs CHF 62 all-day pass); Grossmünster tower
+  (~CHF 5); SBB timetable change from 13 Dec 2026 may add a change at Zürich HB for airport–Lucerne trips on weekdays;
+  Zurich/Lucerne hotels and halal places not re-checked today.
+- Rotation stopped after: zrh, lzn. Next: int, vie.
+
 ## 2026-11-12
 - Exchange rates: €1 ≈ A$1.62 (XE 1.624, Telexoo 1.624 on 12 Nov; was 1.63). ECB 12 Nov (Central Bank of Malta
   mirror): GBP 0.835 → 0.836, CHF 0.920 → 0.923. Others unchanged.

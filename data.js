@@ -13,7 +13,7 @@
 
 /* ---------- DATA REFRESH — updated by the daily refresh (see tools/REFRESH.md) ---------- */
 const DATA_INFO = {
-  refreshed: "2026-11-12", // date the data was last checked (YYYY-MM-DD)
+  refreshed: "2026-11-13", // date the data was last checked (YYYY-MM-DD)
   covers: "exchange rates, entry rules for Australians, Sydney flights, prices, opening days, hotels, halal food and transport",
 };
 /* Exchange rates: eurAud = A$ per €1 (mid-market); perEur = units of each currency per €1 (ECB reference rates).
